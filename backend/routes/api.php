@@ -22,7 +22,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register/init', [AuthController::class, 'registerInit']);
 Route::post('/register/verify', [AuthController::class, 'registerVerify']);
 
-// --- 2. PUBLIC ROUTES (XEM KHÔNG CẦN LOGIN) ---
+// --- 2. PUBLIC ROUTES ---
 Route::get('/categories', [CategoryController::class, 'index']); 
 Route::get('/categories/{id}', [CategoryController::class, 'show']);
 Route::get('/products', [ProductController::class, 'index']); 
@@ -42,11 +42,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar']);
 
-    // --- QUẢN LÝ DANH MỤC (SỬA LỖI 500 & 401 Ở ĐÂY) ---
-    // Lưu ý: Không dùng prefix('categories') lồng thêm một lần nữa nếu đã gọi API trực tiếp
+    // --- QUẢN LÝ DANH MỤC ---
     Route::post('/categories', [CategoryController::class, 'store']);
     Route::put('/categories/{id}', [CategoryController::class, 'update']);
-    Route::patch('/categories/{id}/status', [CategoryController::class, 'updateStatus']); // Đây là route lỗi 500
+    Route::patch('/categories/{id}/status', [CategoryController::class, 'updateStatus']);
     Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
 
     // --- QUẢN LÝ SẢN PHẨM ---
@@ -62,27 +61,26 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/all-invoices', [HoadonController::class, 'index']);
         Route::get('/all-shipping', [ShippingController::class, 'index']);
     });
-Route::get('/notifications', function () {
-        return response()->json([
-            'status' => 'success',
-            'data' => [] // Trả về mảng rỗng để React không bị lỗi map()
-        ]);
+
+    // --- QUẢN LÝ USER (SỬA LỖI 404 TẠI ĐÂY) ---
+    Route::get('/users', [UserController::class, 'index']);
+    Route::put('/users/{id}', [UserController::class, 'update']); // Cập nhật thông tin chung
+    Route::put('/users/{id}/change-role', [UserController::class, 'changeRole']); // Cấp quyền
+    Route::put('/users/{id}/change-password', [UserController::class, 'changePassword']); // Đổi pass
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
+    // --- CÁC ROUTE KHÁC ---
+    Route::get('/notifications', function () {
+        return response()->json(['status' => 'success', 'data' => []]);
     });
 
     Route::get('/get_conversations', function (Request $request) {
-        return response()->json([
-            'status' => 'success',
-            'data' => [] // Trả về mảng rỗng
-        ]);
+        return response()->json(['status' => 'success', 'data' => []]);
     });
-    // Các thao tác khác
+
     Route::post('/all-invoices', [HoadonController::class, 'store']);
     Route::get('/my-invoices', [HoadonController::class, 'getMyInvoices']);
     Route::post('/update_order_status', [HoadonController::class, 'updateStatus']);
     Route::post('/cancel_order', [HoadonController::class, 'cancelOrder']);
     Route::post('/update_shipping', [ShippingController::class, 'update']);
-
-    // Quản lý User
-    Route::get('/users', [UserController::class, 'index']);
-    Route::delete('/users/{id}', [UserController::class, 'destroy']);
 });
