@@ -29,7 +29,6 @@ const Checkout = () => {
     
     const loadProfile = async () => {
       try {
-        // SỬA LỖI: Thay authAPI bằng fetch trực tiếp
         const res = await fetch('http://localhost:8000/api/profile', {
             headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
         });
@@ -51,7 +50,7 @@ const Checkout = () => {
   const discountAmount = Number(appliedVoucher?.discount_amount || 0);
   const finalPrice = Math.max(totalPrice - discountAmount, 0);
 
-  // Xử lý Voucher (Giả định endpoint /api/vouchers/validate)
+  // Xử lý Voucher
   const handleApplyVoucher = async () => {
     setVoucherError('');
     try {
@@ -74,7 +73,7 @@ const Checkout = () => {
     } catch (err) { setVoucherError('Lỗi kết nối voucher'); }
   };
 
-  // XỬ LÝ ĐẶT HÀNG (SỬA LỖI ordersAPI)
+  // XỬ LÝ ĐẶT HÀNG
   const handleSubmit = async (e) => {
     e.preventDefault();
     const token = getAuthToken();
@@ -84,22 +83,21 @@ const Checkout = () => {
     try {
       setIsSubmitting(true);
       
-      // Chuẩn bị dữ liệu gửi lên Laravel HoadonController
       const orderPayload = {
         fullName: formData.fullName,
         phone: formData.phone,
         address: formData.address,
-        amount: finalPrice, // Sửa từ total_amount thành amount để khớp với DB và Model
+        amount: finalPrice, 
         payment_method: paymentMethod === 'COD' ? 'Tiền mặt khi nhận' : 'Chuyển khoản bảo mật',
         items: safeCart.map(item => ({
-            name: item.name, // Controller dùng $item['name']
-            qty: item.amount || item.quantity || 1, // Controller dùng $item['qty']
-            price: item.price // Controller dùng $item['price']
+            name: item.name, 
+            qty: item.amount || item.quantity || 1, 
+            price: item.price 
         }))
       };
 
-      // Gửi yêu cầu đến Laravel
-      const response = await fetch('http://localhost:8000/api/all-invoices', {
+      // ĐÃ SỬA: Đổi từ /api/all-invoices thành /api/create_invoice để khớp với file api.php (POST)
+      const response = await fetch('http://localhost:8000/api/create_invoice', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -112,9 +110,9 @@ const Checkout = () => {
       const result = await response.json();
 
       if (response.ok) {
-        alert(`✨ Tuyệt tác đã được xác nhận! Mã đơn: #${result.order_id || 'Lumina'}`);
+        alert(`✨ Tuyệt tác đã được xác nhận! Mã đơn: #${result.id || result.order_id || 'Lumina'}`);
         clearCart();
-        navigate('/orders'); // Hoặc /profile để xem lịch sử
+        navigate('/my-orders'); // Hoặc trang bạn muốn chuyển đến sau khi đặt hàng thành công
       } else {
         throw new Error(result.message || 'Lỗi khi tạo đơn hàng');
       }

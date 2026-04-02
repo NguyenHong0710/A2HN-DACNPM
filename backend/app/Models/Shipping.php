@@ -12,10 +12,9 @@ class Shipping extends Model
     protected $table = 'shippings';
 
     // Cực kỳ quan trọng: Cho phép lưu các cột này từ React gửi lên
-    protected $fillable = [
-        'id', 'orderId', 'customer', 'method', 'status', 'estimatedTime', 'address', 'note'
-    ];
-
+   protected $fillable = [
+    'id', 'orderId', 'customer', 'phone', 'method', 'status', 'estimatedTime', 'address', 'note'
+];
     // Vì ID của ông là chuỗi (SHIP-001) nên phải khai báo 2 dòng này
     protected $keyType = 'string';
     public $incrementing = false;

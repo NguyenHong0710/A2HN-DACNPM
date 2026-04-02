@@ -18,7 +18,7 @@ import adminExampleStyles from "../admin/scss/examples.scss?inline";
 // ✅ Đã đổi sang admin
 const admin_BASE_PATH = '/admin';
 
-const AUTH_REQUIRED_USER_PATHS = new Set(['/cart', '/checkout', '/messages']);
+const AUTH_REQUIRED_USER_PATHS = new Set(['/cart', '/checkout', '/messages', '/my-orders']);
 
 function App() {
   const location = useLocation();

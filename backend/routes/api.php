@@ -64,7 +64,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Route lấy danh sách cho trang Hóa Đơn (khớp với React)
     Route::get('/all-invoices', [HoadonController::class, 'index']);
     Route::get('/get_invoices', [HoadonController::class, 'index']); 
-    Route::post('/update_order_status', [HoadonController::class, 'updateStatus']);
+    Route::post('/update_order_status', [HoadonController::class, 'update']);
     
     // Route cho khách hàng
     Route::post('/create_invoice', [HoadonController::class, 'store']); // Tạo đơn hàng mới

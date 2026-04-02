@@ -32,7 +32,8 @@ const routes = [
   { path: '/reset-password', name: 'Reset Password', element: ResetPassword },
   { path: '/cart', name: 'Cart', element: Cart },
   { path: '/checkout', name: 'Checkout', element: Checkout },
-  { path: '/orders', name: 'Order History', element: OrderHistory },
+  // Trong file routes.js
+  { path: '/my-orders', name: 'Order History', element: OrderHistory },
   { path: '/notifications', name: 'Notifications', element: NotificationPage },
 ];
 

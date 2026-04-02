@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-
+use App\Models\Shipping;
 class HoadonController extends Controller
 {
     /**
@@ -136,31 +136,47 @@ class HoadonController extends Controller
     // App/Http/Controllers/Api/HoadonController.php
 
 public function update(Request $request)
-    {
-        try {
-            $shipping = Shipping::find($request->id);
-
-            if (!$shipping) {
-                return response()->json(['status' => 'error', 'message' => 'Không tìm thấy vận đơn'], 404);
-            }
-
-            // Cập nhật dữ liệu vận chuyển
-            $shipping->update($request->all());
-
-            // Đồng bộ trạng thái sang bảng Hóa đơn (để trang Hóa đơn cũng cập nhật theo)
-            if ($request->has('status')) {
-                $hoadon = Hoadon::find($shipping->orderId);
-                if ($hoadon) {
-                    $hoadon->update(['deliveryStatus' => $request->status]);
-                }
-            }
-
-            return response()->json(['status' => 'success', 'message' => 'Cập nhật thành công']);
-        } catch (\Exception $e) {
-            // Trả về lỗi chi tiết để bạn xem trong tab Preview nếu còn lỗi 500
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+{
+    DB::beginTransaction();
+    try {
+        // 1. Tìm hóa đơn gốc dựa trên ID từ bảng quản lý
+        $hoadon = Hoadon::find($request->id);
+        if (!$hoadon) {
+            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy hóa đơn'], 404);
         }
+
+        // 2. Cập nhật trạng thái cho bảng Hóa đơn
+        $hoadon->update(['deliveryStatus' => $request->status]);
+
+        // 3. ĐỒNG BỘ SANG VẬN CHUYỂN: Kiểm tra xem đã có vận đơn chưa
+        $shipping = Shipping::where('orderId', $hoadon->id)->first();
+
+        if ($shipping) {
+            // Nếu đã có, chỉ cập nhật trạng thái mới
+            $shipping->update(['status' => $request->status]);
+        } else {
+            // Nếu chưa có (đơn mới), TẠO MỚI bản ghi vận chuyển để trang Shipping có dữ liệu
+            Shipping::create([
+    'id'       => 'SHIP-' . $hoadon->id . '-' . time(), 
+    'orderId'  => $hoadon->id,
+    'customer' => $hoadon->customer,
+    'phone'    => $hoadon->phone,
+    'address'  => $hoadon->address,
+    'status'   => $request->status,
+    'method'   => 'Giao hàng tiêu chuẩn',
+    
+    // TRUYỀN NGÀY GIỜ CHUẨN (Không truyền chuỗi "2-4 ngày" nữa)
+    'estimatedTime' => now()->addDays(3), 
+]);
+        }
+
+        DB::commit();
+        return response()->json(['status' => 'success', 'message' => 'Cập nhật và đồng bộ vận chuyển thành công!']);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json(['status' => 'error', 'message' => 'Lỗi: ' . $e->getMessage()], 500);
     }
+}
     /**
      * Hủy đơn hàng (Dành cho Người dùng ở trang Profile)
      */
