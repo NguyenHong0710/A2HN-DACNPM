@@ -165,9 +165,35 @@
   color: var(--white);
 }
 
-/* --- 2. DANH MỤC NỔI BẬT (VÒNG TRÒN) --- */
+/* =========================================
+   DANH MỤC NỔI BẬT (DÙNG ICON - TONE SANG TRỌNG)
+   ========================================= */
 .category-section {
-  padding: 40px 0;
+  padding: 80px 20px;
+  background-color: #fafafa;
+  text-align: center;
+}
+
+.category-section .section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.2rem;
+  color: #111;
+  margin-bottom: 50px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  position: relative;
+  display: inline-block;
+}
+
+.category-section .section-title::after {
+  content: '';
+  position: absolute;
+  width: 60px;
+  height: 2px;
+  background-color: #c5a059; /* Vàng Gold */
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .category-grid-circles {
@@ -175,7 +201,8 @@
   justify-content: center;
   gap: 60px;
   flex-wrap: wrap;
-  margin-top: 40px;
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
 .category-item-circle {
@@ -183,47 +210,66 @@
   flex-direction: column;
   align-items: center;
   text-decoration: none;
-  color: var(--dark-text);
-  gap: 20px;
-  transition: transform 0.3s;
+  color: #333;
+  transition: all 0.3s ease;
 }
 
-.category-item-circle:hover {
-  transform: translateY(-10px);
-}
-
-.circle-img {
-  width: 150px;
-  height: 150px;
+.circle-icon-wrapper {
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
-  padding: 6px;
+  background-color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 45px;
+  color: #111;
   border: 1px solid #eaeaea;
-  transition: border-color 0.4s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  transition: all 0.4s ease;
+  margin-bottom: 20px;
 }
 
-.category-item-circle:hover .circle-img {
-  border-color: var(--gold-primary);
-}
-
-.circle-img img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.category-item-circle span {
-  font-family: var(--font-heading);
-  font-size: 18px;
+.category-name {
+  font-size: 1.1rem;
   font-weight: 500;
-  letter-spacing: 0.5px;
-  transition: color 0.3s;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: color 0.3s ease;
 }
 
-.category-item-circle:hover span {
-  color: var(--gold-primary);
+/* Hiệu ứng Hover */
+.category-item-circle:hover .circle-icon-wrapper {
+  background-color: #111;
+  color: #c5a059;
+  transform: translateY(-10px);
+  box-shadow: 0 15px 25px rgba(197, 160, 89, 0.25);
+  border-color: #111;
 }
 
+.category-item-circle:hover .category-name {
+  color: #c5a059;
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .category-grid-circles {
+    gap: 30px;
+  }
+  .circle-icon-wrapper {
+    width: 80px;
+    height: 80px;
+    font-size: 35px;
+    margin-bottom: 12px;
+  }
+  .category-name {
+    font-size: 0.95rem;
+  }
+  .category-section .section-title {
+    font-size: 1.8rem;
+  }
+}
 /* --- 3. SẢN PHẨM NỔI BẬT --- */
 .featured-section {
   margin-top: 20px;

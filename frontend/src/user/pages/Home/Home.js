@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../../store/CartContext';
 import Services from './Services';
 import { FiArrowRight, FiShoppingBag, FiStar } from 'react-icons/fi';
+// Import thêm bộ icon trang sức chuyên dụng
+import { GiDiamondRing, GiNecklace, GiDropEarrings, GiGemChain } from 'react-icons/gi';
 import './Home.css';
 import { API_BASE as API_BASE_URL } from "../../../config";
 
@@ -76,12 +78,12 @@ const Home = () => {
     return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
   };
 
-  // 5. DANH MỤC NỔI BẬT
-const circleCategories = [
-    { name: 'Nhẫn Bạc', img: 'https://images.unsplash.com/photo-1605100804763-247f67b6348e?w=200' },
-    { name: 'Dây Chuyền Bạc', img: 'https://images.unsplash.com/photo-1599643477877-530e55620206?w=200' },
-    { name: 'Bông Tai Bạc', img: 'https://images.unsplash.com/photo-1635767798638-3e25273a8236?w=200' },
-    { name: 'Lắc & Vòng Tay', img: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=200' },
+  // 5. DANH MỤC NỔI BẬT (Đã đổi sang Icon và tên chuẩn khớp với filter trang Shop)
+  const circleCategories = [
+    { name: 'Nhẫn Bạc', icon: <GiDiamondRing /> },
+    { name: 'Dây Chuyền Bạc', icon: <GiNecklace /> },
+    { name: 'Bông Tai Bạc', icon: <GiDropEarrings /> },
+    { name: 'Lắc & Vòng Tay', icon: <GiGemChain /> },
   ];
 
   return (
@@ -110,7 +112,7 @@ const circleCategories = [
       <Services />
 
       <div className="home-container">
-        {/* 2. DANH MỤC NỔI BẬT (VÒNG TRÒN) */}
+        {/* 2. DANH MỤC NỔI BẬT (ICON SANG TRỌNG) */}
         <section className="category-section">
           <div className="section-header">
             <h2 className="section-title">Danh Mục Nổi Bật</h2>
@@ -118,10 +120,10 @@ const circleCategories = [
           <div className="category-grid-circles">
             {circleCategories.map((cat, idx) => (
               <Link to={`/shop?category=${encodeURIComponent(cat.name)}`} key={idx} className="category-item-circle">
-                <div className="circle-img">
-                  <img src={cat.img} alt={cat.name} />
+                <div className="circle-icon-wrapper">
+                  {cat.icon}
                 </div>
-                <span>{cat.name}</span>
+                <span className="category-name">{cat.name}</span>
               </Link>
             ))}
           </div>
@@ -143,7 +145,6 @@ const circleCategories = [
               {dbProducts.slice(0, 8).map((product) => (
                 <div key={product.id} className="product-card">
                   <div className="product-image-wrapper">
-                    {/* Bọc ảnh bằng Link để vào chi tiết */}
                     <Link to={`/product/${product.id}`}>
                         <img src={getImageUrl(product.images)} alt={product.name} />
                     </Link>
@@ -155,7 +156,6 @@ const circleCategories = [
                   </div>
                   <div className="product-info">
                     <span className="product-cat">{product.category}</span>
-                    {/* Bọc tên bằng Link để vào chi tiết */}
                     <Link to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                         <h3 className="product-name">{product.name}</h3>
                     </Link>
