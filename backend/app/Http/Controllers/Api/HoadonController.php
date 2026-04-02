@@ -133,23 +133,34 @@ class HoadonController extends Controller
     /**
      * Cập nhật trạng thái đơn hàng (Dành cho Admin/Shipper)
      */
-    public function updateStatus(Request $request)
+    // App/Http/Controllers/Api/HoadonController.php
+
+public function update(Request $request)
     {
         try {
-            $order = Hoadon::find($request->order_code);
+            $shipping = Shipping::find($request->id);
 
-            if (!$order) {
-                return response()->json(['status' => 'error', 'message' => 'Không tìm thấy hóa đơn'], 404);
+            if (!$shipping) {
+                return response()->json(['status' => 'error', 'message' => 'Không tìm thấy vận đơn'], 404);
             }
 
-            $order->update(['deliveryStatus' => $request->status]);
+            // Cập nhật dữ liệu vận chuyển
+            $shipping->update($request->all());
 
-            return response()->json(['status' => 'success', 'message' => 'Cập nhật trạng thái thành công']);
-        } catch (Exception $e) {
+            // Đồng bộ trạng thái sang bảng Hóa đơn (để trang Hóa đơn cũng cập nhật theo)
+            if ($request->has('status')) {
+                $hoadon = Hoadon::find($shipping->orderId);
+                if ($hoadon) {
+                    $hoadon->update(['deliveryStatus' => $request->status]);
+                }
+            }
+
+            return response()->json(['status' => 'success', 'message' => 'Cập nhật thành công']);
+        } catch (\Exception $e) {
+            // Trả về lỗi chi tiết để bạn xem trong tab Preview nếu còn lỗi 500
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
-
     /**
      * Hủy đơn hàng (Dành cho Người dùng ở trang Profile)
      */
