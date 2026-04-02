@@ -26,28 +26,39 @@ class HoadonController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Vui lòng đăng nhập để đặt hàng'], 401);
             }
 
-            // 1. Tạo hóa đơn chính
-            // ID sẽ tự động tăng trong DB nhờ thiết lập Auto Increment đã làm ở phpMyAdmin
+            // --- BƯỚC 1: TÍNH TOÁN TỔNG TIỀN TỪ DANH SÁCH SẢN PHẨM ---
+            // Việc tính toán ở Backend giúp tránh lỗi null và ngăn chặn việc gian lận giá từ Frontend
+            $calculatedAmount = 0;
+            if ($request->has('items') && is_array($request->items)) {
+                foreach ($request->items as $item) {
+                    $price = $item['price'] ?? 0;
+                    $qty = $item['qty'] ?? ($item['quantity'] ?? 1);
+                    $calculatedAmount += ($price * $qty);
+                }
+            } else {
+                return response()->json(['status' => 'error', 'message' => 'Giỏ hàng trống hoặc dữ liệu không hợp lệ'], 400);
+            }
+
+            // 2. Tạo hóa đơn chính
+            // Sử dụng $calculatedAmount thay vì $request->total_amount để đảm bảo không bị NULL
             $hoadon = Hoadon::create([
                 'user_id'         => $user->id,
                 'customer'        => $request->fullName,
                 'phone'           => $request->phone,
                 'address'         => $request->address,
-                'amount'          => $request->total_amount,
+                'amount'          => $calculatedAmount, 
                 'payment_method'  => $request->payment_method,
                 'deliveryStatus'  => 'pending', 
             ]);
 
-            // 2. Lưu chi tiết từng sản phẩm trong đơn hàng
-            if ($request->has('items') && is_array($request->items)) {
-                foreach ($request->items as $item) {
-                    // Gọi quan hệ chiTiet() đã định nghĩa trong Model Hoadon
-                    $hoadon->chiTiet()->create([
-                        'name'  => $item['name'] ?? 'Sản phẩm không tên',
-                        'qty'   => $item['qty'] ?? ($item['quantity'] ?? 1),
-                        'price' => $item['price'] ?? 0,
-                    ]);
-                }
+            // 3. Lưu chi tiết từng sản phẩm trong đơn hàng
+            foreach ($request->items as $item) {
+                // Gọi quan hệ chiTiet() đã định nghĩa trong Model Hoadon
+                $hoadon->chiTiet()->create([
+                    'name'  => $item['name'] ?? 'Sản phẩm không tên',
+                    'qty'   => $item['qty'] ?? ($item['quantity'] ?? 1),
+                    'price' => $item['price'] ?? 0,
+                ]);
             }
 
             DB::commit();
@@ -101,7 +112,6 @@ class HoadonController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Tài khoản chưa xác thực.'], 401);
             }
 
-            // Lọc theo user_id để đảm bảo tính bảo mật
             $invoices = Hoadon::with('chiTiet')
                 ->where('user_id', $user->id) 
                 ->orderBy('created_at', 'desc')
@@ -126,7 +136,6 @@ class HoadonController extends Controller
     public function updateStatus(Request $request)
     {
         try {
-            // Frontend gửi order_code (tương ứng với ID), tìm trong DB để update
             $order = Hoadon::find($request->order_code);
 
             if (!$order) {
@@ -148,7 +157,6 @@ class HoadonController extends Controller
     {
         try {
             $user = $request->user();
-            // Chỉ tìm đơn hàng thuộc về chính người dùng đó
             $order = Hoadon::where('id', $request->id)
                            ->where('user_id', $user->id)
                            ->first();
@@ -157,7 +165,6 @@ class HoadonController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Không tìm thấy đơn hàng'], 404);
             }
 
-            // Chỉ cho phép hủy nếu đơn hàng đang ở trạng thái 'pending' (chờ xử lý)
             if ($order->deliveryStatus !== 'pending') {
                 return response()->json(['status' => 'error', 'message' => 'Chỉ có thể hủy đơn hàng khi đang chờ xử lý'], 400);
             }
