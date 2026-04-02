@@ -1,0 +1,100 @@
+﻿Báº¢NG PHÃ‚N CÃ”NG CÃ”NG VIá»†C NHÃ“M
+TÃªn dá»± Ã¡n:
+Sprint:
+NgÃ y báº¯t Ä‘áº§u:
+TrÆ°á»Ÿng nhÃ³m:
+#
+CÃ´ng viá»‡c / User Story
+MÃ´ táº£ chi tiáº¿t
+NgÆ°á»i thá»±c hiá»‡n
+Æ¯u tiÃªn
+Story Points
+NgÃ y báº¯t Ä‘áº§u
+Háº¡n hoÃ n thÃ nh
+Tráº¡ng thÃ¡i
+Ghi chÃº
+ðŸ“Š THá»NG KÃŠ NHANH
+Tá»•ng sá»‘ cÃ´ng viá»‡c:
+ÄÃ£ hoÃ n thÃ nh:
+Chá» review:
+Æ¯u tiÃªn cao:
+Tá»•ng Story Points:
+Äang thá»±c hiá»‡n:
+Bá»‹ cháº·n:
+Tá»· lá»‡ hoÃ n thÃ nh:
+Báº¢NG PHÃ‚N Bá»” KHá»I LÆ¯á»¢NG CÃ”NG VIá»†C THEO THÃ€NH VIÃŠN
+Há» vÃ  tÃªn
+Vai trÃ²
+Sá»‘ cÃ´ng viá»‡c
+Tá»•ng SP
+Äang lÃ m
+HoÃ n thÃ nh
+Tá»· lá»‡ %
+TrÆ°á»Ÿng nhÃ³m
+ThÃ nh viÃªn
+Tá»”NG Cá»˜NG
+ðŸ’¡ LÆ°u Ã½: NÃªn phÃ¢n cÃ´ng Ä‘á»u Story Points cho cÃ¡c thÃ nh viÃªn (chÃªnh lá»‡ch khÃ´ng quÃ¡ 20%)
+Báº¢NG THEO DÃ•I TIáº¾N Äá»˜ HÃ€NG NGÃ€Y
+NgÃ y
+CÃ´ng viá»‡c hoÃ n thÃ nh
+SP hoÃ n thÃ nh
+Tá»•ng SP cÃ²n láº¡i
+Ghi chÃº / Váº¥n Ä‘á»
+NgÆ°á»i bÃ¡o cÃ¡o
+Giáº£i phÃ¡p
+ðŸ“– HÆ¯á»šNG DáºªN Sá»¬ Dá»¤NG Báº¢NG PHÃ‚N CÃ”NG CÃ”NG VIá»†C
+1. CÃCH ÄIá»€N THÃ”NG TIN
+Cá»™t CÃ´ng viá»‡c / User Story:
+Ghi tÃªn cÃ´ng viá»‡c hoáº·c User Story ngáº¯n gá»n, rÃµ rÃ ng
+Cá»™t MÃ´ táº£ chi tiáº¿t:
+MÃ´ táº£ cá»¥ thá»ƒ cÃ´ng viá»‡c cáº§n lÃ m, tiÃªu chÃ­ hoÃ n thÃ nh
+Cá»™t NgÆ°á»i thá»±c hiá»‡n:
+Ghi Ä‘Ãºng tÃªn nhÆ° trong sheet "Khá»‘i lÆ°á»£ng thÃ nh viÃªn"
+Cá»™t Æ¯u tiÃªn:
+Chá»n tá»« dropdown: ðŸ”´ Cao, ðŸŸ¡ Trung bÃ¬nh, ðŸŸ¢ Tháº¥p
+Cá»™t Story Points:
+Äiá»ƒm Æ°á»›c tÃ­nh Ä‘á»™ phá»©c táº¡p (1, 2, 3, 5, 8, 13...)
+Cá»™t Tráº¡ng thÃ¡i:
+Chá»n tá»« dropdown vÃ  Cáº¬P NHáº¬T THÆ¯á»œNG XUYÃŠN
+2. QUY Æ¯á»šC STORY POINTS
+1 SP:
+CÃ´ng viá»‡c ráº¥t Ä‘Æ¡n giáº£n, lÃ m trong 1-2 giá»
+2 SP:
+CÃ´ng viá»‡c Ä‘Æ¡n giáº£n, lÃ m trong ná»­a ngÃ y
+3 SP:
+CÃ´ng viá»‡c trung bÃ¬nh, lÃ m trong 1 ngÃ y
+5 SP:
+CÃ´ng viá»‡c phá»©c táº¡p, lÃ m trong 2-3 ngÃ y
+8 SP:
+CÃ´ng viá»‡c ráº¥t phá»©c táº¡p, cáº§n chia nhá»
+13 SP:
+CÃ´ng viá»‡c quÃ¡ lá»›n, Báº®T BUá»˜C pháº£i chia nhá»
+3. QUY Táº®C PHÃ‚N CÃ”NG
+CÃ¢n báº±ng:
+Má»—i thÃ nh viÃªn nÃªn nháº­n ~20-25 SP/Sprint 2 tuáº§n
+Pháº£i cÃ³ deadline rÃµ rÃ ng vÃ  ngÆ°á»i phá»¥ trÃ¡ch
+CÃ´ng viá»‡c bá»‹ cháº·n:
+Ghi rÃµ nguyÃªn nhÃ¢n trong cá»™t Ghi chÃº
+Pair programming:
+Ghi tÃªn cáº£ 2 ngÆ°á»i, cÃ¡ch nhau báº±ng dáº¥u &
+4. Cáº¬P NHáº¬T HÃ€NG NGÃ€Y
+Daily Standup:
+Cáº­p nháº­t tráº¡ng thÃ¡i cÃ´ng viá»‡c má»—i ngÃ y
+Sheet Tiáº¿n Ä‘á»™:
+Ghi láº¡i SP hoÃ n thÃ nh má»—i ngÃ y
+5. MÃ€U Sáº®C TRáº NG THÃI
+ðŸ“‹ ChÆ°a báº¯t Ä‘áº§u:
+CÃ´ng viá»‡c má»›i, chÆ°a ai lÃ m
+ðŸ”„ Äang lÃ m:
+Äang trong quÃ¡ trÃ¬nh thá»±c hiá»‡n
+ðŸ‘€ Chá» review:
+ÄÃ£ xong, chá» code review hoáº·c kiá»ƒm tra
+âœ… HoÃ n thÃ nh:
+ÄÃ£ hoÃ n thÃ nh vÃ  Ä‘Æ°á»£c cháº¥p nháº­n
+âš ï¸ Bá»‹ cháº·n:
+KhÃ´ng thá»ƒ tiáº¿p tá»¥c vÃ¬ lÃ½ do nÃ o Ä‘Ã³
+VÄƒn PhÃº Äáº¡i
+LÃª VÅ© HoÃ ng
+Tráº§n Tháº¿ Kiá»‡t
+Nguyá»…n Há»¯u TÃ¬nh
+Tráº§n ÄÃ¬nh TÃº

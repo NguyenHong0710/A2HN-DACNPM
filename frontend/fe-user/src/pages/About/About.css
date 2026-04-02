@@ -1,0 +1,122 @@
+/* src/pages/About/About.css */
+.about-container {
+  font-family: 'Poppins', sans-serif;
+  padding-bottom: 50px;
+}
+
+/* --- PHẦN 1: BANNER --- */
+.about-banner {
+  background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&w=1200&q=80');
+  background-size: cover;
+  background-position: center;
+  height: 350px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.about-banner h1 {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.breadcrumb {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.9;
+}
+
+/* --- PHẦN 2: NỘI DUNG CHÍNH (ẢNH + CHỮ) --- */
+.about-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  gap: 50px;
+  padding: 0 20px;
+  align-items: center;
+  flex-wrap: wrap; 
+}
+
+
+.about-image {
+  flex: 1;
+  min-width: 300px;
+  position: relative;
+}
+
+.about-image img {
+  width: 100%;
+  border-radius: 5px;
+  display: block;
+}
+
+
+.play-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  background-color: #82ae46;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 30px;
+  cursor: pointer;
+  box-shadow: 0 0 0 10px rgba(130, 174, 70, 0.3); 
+  transition: 0.3s;
+}
+
+.play-btn:hover {
+  transform: translate(-50%, -50%) scale(1.1);
+  background-color: #fff;
+  color: #82ae46;
+}
+
+/* Cột phải: Chữ */
+.about-text {
+  flex: 1;
+  min-width: 300px;
+}
+
+.about-text h2 {
+  font-size: 32px;
+  color: #000;
+  margin-bottom: 20px;
+  line-height: 1.2;
+}
+
+.about-text p {
+  color: #666;
+  line-height: 1.8;
+  margin-bottom: 20px;
+  font-size: 15px;
+}
+
+.shop-now-btn {
+  display: inline-block;
+  background-color: #82ae46;
+  color: white;
+  padding: 12px 30px;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: 0.3s;
+  border: 1px solid #82ae46;
+}
+
+.shop-now-btn:hover {
+  background-color: transparent;
+  color: #82ae46;
+}

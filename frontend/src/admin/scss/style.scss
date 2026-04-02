@@ -1,0 +1,212 @@
+@use "sass:color";
+
+@use "@coreui/coreui/scss/coreui" as * with ( 
+  $enable-deprecation-messages: false,
+);
+@use "@coreui/chartjs/scss/coreui-chartjs";
+@use "vendors/simplebar";
+
+body {
+  background-color: var(--cui-tertiary-bg);
+}
+
+.wrapper {
+  width: 100%;
+  padding-inline: var(--cui-sidebar-occupy-start, 0) var(--cui-sidebar-occupy-end, 0);
+  will-change: auto;
+  @include transition(padding .15s);
+}
+
+.header > .container-fluid,
+.sidebar-header {
+  min-height: calc(4rem + 1px); // stylelint-disable-line function-disallowed-list
+}
+
+.sidebar-brand-full {
+  margin-left: 3px;
+}
+
+.sidebar-header {
+  .nav-underline-border {
+    --cui-nav-underline-border-link-padding-x: 1rem;
+    --cui-nav-underline-border-gap: 0;
+  }
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    min-height: calc(4rem + 1px); // stylelint-disable-line function-disallowed-list
+  }
+}
+
+.sidebar-toggler {
+  margin-inline-start: auto;
+}
+
+.sidebar-narrow,
+.sidebar-narrow-unfoldable:not(:hover) {
+  .sidebar-toggler {
+    margin-inline-end: auto;
+  }
+}
+
+.header > .container-fluid + .container-fluid {
+  min-height: 3rem;
+}
+
+.footer {
+  min-height: calc(3rem + 1px); // stylelint-disable-line function-disallowed-list
+}
+
+@include color-mode(dark) {
+  body {
+    background-color: var(--cui-dark-bg-subtle);
+  }
+
+  // Keep text dark on intentionally white surfaces.
+  .bg-white,
+  .modal-content,
+  .card-green-theme,
+  .modal-green-content,
+  .modal-theme-content,
+  .mobile-card,
+  .card-theme,
+  .table-theme-custom,
+  .table-theme-custom thead th,
+  .table-theme-custom td,
+  .table-theme-custom tbody tr:hover > *,
+  .table-theme-custom .text-muted,
+  .table-theme-custom .text-body-secondary,
+  .table-green-custom thead th,
+  .table-green-custom td,
+  .table-green thead th,
+  .table-green td {
+    color: #111827 !important;
+  }
+
+  .form-control::placeholder,
+  .form-control-green::placeholder,
+  .form-control-chat::placeholder,
+  .form-select::placeholder {
+    color: #6b7280 !important;
+    opacity: 1;
+  }
+
+  .table-theme-custom .text-primary { color: var(--cui-primary) !important; }
+  .table-theme-custom .text-success { color: var(--cui-success) !important; }
+  .table-theme-custom .text-danger { color: var(--cui-danger) !important; }
+  .table-theme-custom .text-warning { color: var(--cui-warning) !important; }
+
+  .footer {
+    --cui-footer-bg: var(--cui-body-bg);
+  }
+}
+
+/* --- TAILvendor CUSTOM THEME FOR PRODUCTS PAGE --- */
+
+// 1. Biến màu sắc chuẩn Tailvendor
+$tail-bg-dark: #1a222c;       // Màu nền chính
+$tail-card-dark: #24303f;     // Màu nền Card
+$tail-border: #2e3a47;        // Màu viền mờ
+$tail-text-main: #dee4ee;     // Màu chữ trắng ngà
+$tail-text-muted: #8a99af;    // Màu chữ xám
+$tail-primary: #3c50e0;       // Xanh dương
+$tail-success: #D99485;       // Xanh lá
+
+// 2. Class tiện ích
+.bg-dark-box {
+  background-color: $tail-card-dark !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-radius: 0.5rem;
+  color: $tail-text-main;
+}
+
+.text-muted-custom { color: $tail-text-muted !important; }
+.text-primary-custom { color: $tail-primary !important; }
+.text-success-custom { color: $tail-success !important; }
+.text-danger-custom { color: #dc3545 !important; }
+
+.bg-primary-soft { background-color: rgba($tail-primary, 0.1); }
+.bg-success-soft { background-color: rgba($tail-success, 0.1); }
+.bg-warning-soft { background-color: rgba(255, 193, 7, 0.1); }
+
+.icon-box {
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+// 3. Form Input Dark
+.form-control-dark {
+  background-color: #1d2a39;
+  border: 1px solid $tail-border;
+  color: #fff;
+  border-radius: 4px;
+  &:focus {
+    background-color: #1d2a39;
+    border-color: $tail-primary;
+    color: #fff;
+    box-shadow: none;
+  }
+}
+
+// 4. Custom Table
+.table-tailvendor {
+  --cui-table-color: #{$tail-text-main};
+  --cui-table-hover-bg: #2a384b;
+  
+  thead th {
+    background-color: #313d4a;
+    color: #fff;
+    font-weight: 600;
+    border: none;
+    padding: 1rem;
+    font-size: 0.9rem;
+  }
+
+  tbody td {
+    border-bottom: 1px solid $tail-border;
+    padding: 1rem;
+    font-size: 0.95rem;
+  }
+}
+
+// 5. Badges
+.badge-custom {
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  
+  &.badge-success {
+    background-color: rgba($tail-success, 0.1);
+    color: $tail-success;
+  }
+  &.badge-danger {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+  }
+}
+
+.btn-add {
+  background-color: $tail-primary;
+  border: none;
+  &:hover {
+  background-color: color.adjust($tail-primary, $lightness: -5%);
+}
+.badge {
+  background-color: #D99485 !important;
+  color: #ffffff !important;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+// Button hồng
+
+}

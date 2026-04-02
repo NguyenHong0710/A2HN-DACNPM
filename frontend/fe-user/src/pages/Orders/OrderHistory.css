@@ -1,0 +1,114 @@
+.orders-container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.orders-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+.orders-header h1 { color: #2e7d32; margin-bottom: 10px; }
+.orders-header p { color: #666; }
+
+/* Trạng thái chưa có đơn */
+.empty-orders {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+.empty-orders h2 { color: #555; margin: 20px 0; }
+.btn-shopping {
+  display: inline-block;
+  padding: 12px 30px;
+  background: #2e7d32;
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+  border-radius: 4px;
+  transition: 0.3s;
+}
+.btn-shopping:hover { background: #1b5e20; }
+
+/* Danh sách đơn hàng */
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.order-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  overflow: hidden;
+  border: 1px solid #eee;
+}
+
+.order-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: #f9fbf9;
+  border-bottom: 1px solid #eee;
+}
+.order-id { font-size: 16px; color: #333; margin-right: 15px; }
+.order-date { font-size: 14px; color: #888; border-left: 1px solid #ddd; padding-left: 15px; }
+.order-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: bold;
+}
+.status-text { color: #f57c00; } /* Màu cam cho đang xử lý */
+.status-text.success { color: #2e7d32; } /* Màu xanh cho hoàn thành */
+
+.order-items {
+  padding: 20px;
+}
+.order-item-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px dashed #eee;
+}
+.order-item-row:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+.order-item-img {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #eee;
+}
+.order-item-info { flex: 1; }
+.order-item-info h4 { margin: 0 0 5px 0; color: #333; font-size: 15px; }
+.order-item-info p { margin: 0; color: #888; font-size: 14px; }
+.order-item-price { font-weight: bold; color: #d32f2f; }
+
+.order-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: #fffafa;
+  border-top: 1px solid #eee;
+}
+.order-method { font-size: 14px; color: #555; }
+.order-total { font-size: 16px; font-weight: bold; color: #333; }
+.order-total span { color: #d32f2f; font-size: 22px; margin-left: 10px; }
+
+@media (max-width: 600px) {
+  .order-card-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .order-date { border: none; padding: 0; display: block; margin-top: 5px; }
+  .order-card-footer { flex-direction: column; align-items: flex-end; gap: 10px; }
+}

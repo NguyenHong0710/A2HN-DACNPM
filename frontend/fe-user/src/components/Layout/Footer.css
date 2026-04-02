@@ -1,0 +1,138 @@
+.fresh-footer {
+  background-color: #3ab54a; /* Màu xanh lá chuẩn của FreshMart */
+  color: white;
+  position: relative;
+  margin-top: 80px; /* Tạo khoảng trống cho lượn sóng */
+}
+
+/* Đường lượn sóng */
+.footer-wave {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  width: 100%;
+  height: 40px;
+  background-color: #3ab54a;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+}
+
+/* Bố cục 4 cột */
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 50px 20px 30px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 30px;
+}
+
+.footer-col h3 {
+  font-size: 18px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  font-weight: bold;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+  padding-bottom: 10px;
+  display: inline-block;
+}
+
+.footer-col p {
+  font-size: 14px;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+
+.footer-links, .footer-contact {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links li, .footer-contact li {
+  margin-bottom: 12px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0.9;
+}
+
+.footer-links a {
+  color: white;
+  text-decoration: none;
+  transition: 0.3s;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+  opacity: 1;
+}
+
+/* Icon mạng xã hội */
+.social-links {
+  display: flex;
+  gap: 15px;
+}
+
+.social-links a {
+  color: #3ab54a;
+  background: white;
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  text-decoration: none;
+  transition: 0.3s;
+  font-size: 16px;
+}
+
+.social-links a:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+}
+
+/* Box Đăng ký */
+.subscribe-box {
+  display: flex;
+  width: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+  background: white;
+}
+
+.subscribe-box input {
+  flex: 1;
+  border: none;
+  padding: 10px 15px;
+  outline: none;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.subscribe-box button {
+  background: #fbc02d;
+  color: white;
+  border: none;
+  padding: 0 15px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Phần bản quyền */
+.footer-bottom {
+  text-align: center;
+  padding: 20px;
+  border-top: 1px solid rgba(255,255,255,0.2);
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+/* Responsive cho điện thoại / Ipad */
+@media (max-width: 992px) {
+  .footer-content { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 576px) {
+  .footer-content { grid-template-columns: 1fr; }
+}

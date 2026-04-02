@@ -1,0 +1,87 @@
+﻿BIá»‚U MáºªU 03
+Káº¾ HOáº CH CHáº Y NÆ¯á»šC RÃšT 2
+(Sprint 2 Planning)
+TÃªn
+dá»±
+Ã¡n
+Web
+bÃ¡n
+hÃ ng
+nÃ´ng
+sáº£n
+NhÃ³m
+Nhá»¯ng
+N
+gÆ°á»i
+C
+on
+X
+á»©
+Q
+uáº£ng
+Thá»i
+gian
+17
+/
+03
+Ä‘áº¿n
+21
+/
+03
+1. Káº¾T QUáº¢ SPRINT 1
+Story Points
+hoÃ n
+thÃ nh
+_____ SP
+SP
+Ä‘Ã£
+Ä‘Äƒng
+kÃ½
+_____ SP
+Tá»·
+lá»‡
+hoÃ n
+thÃ nh
+_____ %
+2. Má»¤C TIÃŠU SPRINT 2 (Sprint Goal)
+3. DANH SÃCH CÃ”NG VIá»†C SPRINT 2
+#
+User Story / CÃ´ng
+viá»‡c
+SP
+Æ¯u
+tiÃªn
+NgÆ°á»i
+lÃ m
+Ghi
+chÃº
+ðŸ“‹ CÃ´ng
+viá»‡c
+tá»“n
+Ä‘á»ng
+tá»«
+Sprint 1
+1
+2
+ðŸ†• CÃ´ng
+viá»‡c
+má»›i
+Sprint 2
+3
+4
+5
+6
+7
+8
+Tá»•ng
+SP Sprint 2
+_____ SP
+So
+vá»›i
+Sprint 1
+â˜
+Báº±ng
+â˜
+TÄƒng
+â˜
+Giáº£m

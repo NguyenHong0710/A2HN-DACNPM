@@ -1,0 +1,46 @@
+.services-container {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  padding: 50px 20px;
+  background-color: #fff;
+  flex-wrap: wrap;
+}
+
+.service-item {
+  text-align: center;
+  width: 250px;
+}
+
+.icon-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background-color: #e4e9d9; 
+  color: #82ae46;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 40px;
+  transition: 0.3s;
+  border: 1px solid transparent;
+}
+
+.service-item:hover .icon-circle {
+  background-color: #82ae46;
+  color: white;
+}
+
+.service-item h3 {
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+
+.service-item p {
+  color: #666;
+  font-size: 14px;
+}

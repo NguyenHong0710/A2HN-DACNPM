@@ -1,0 +1,103 @@
+.notif-page-container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 0 20px;
+  min-height: 60vh;
+}
+
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 15px;
+}
+
+.notif-header h2 {
+  color: #2e7d32;
+  margin: 0;
+}
+
+.mark-read-btn {
+  background: white;
+  border: 1px solid #2e7d32;
+  color: #2e7d32;
+  padding: 8px 15px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  transition: 0.2s;
+}
+
+.mark-read-btn:hover {
+  background: #2e7d32;
+  color: white;
+}
+
+/* Danh sách thông báo */
+.notif-card {
+  display: flex;
+  gap: 15px;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border-left: 5px solid transparent;
+  transition: 0.2s;
+}
+
+/* Tin chưa đọc sẽ có viền xanh và nền sáng hơn */
+.notif-card.unread {
+  background-color: #f1f8e9;
+  border-left-color: #2e7d32;
+}
+
+.notif-card:hover {
+  transform: translateX(5px);
+}
+
+.notif-card-img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+}
+
+.notif-card-info h3 {
+  margin: 0 0 5px;
+  font-size: 16px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.badge-new {
+  background: red;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.notif-card-info p {
+  margin: 0 0 8px;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.notif-card-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.empty-notif {
+  text-align: center;
+  margin-top: 50px;
+  color: #888;
+}

@@ -1,0 +1,220 @@
+.checkout-container {
+  max-width: 1100px;
+  margin: 40px auto;
+  padding: 0 20px;
+  color: #333;
+}
+
+.checkout-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+.checkout-header h1 { color: #2e7d32; margin-bottom: 10px; }
+.checkout-header p { color: #666; }
+
+.checkout-content {
+  display: flex;
+  gap: 40px;
+}
+
+/* --- Form Thông Tin --- */
+.checkout-form-section {
+  flex: 3;
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+.checkout-form-section h3 {
+  border-bottom: 2px solid #eee;
+  padding-bottom: 15px;
+  margin-top: 0;
+  margin-bottom: 25px;
+  color: #333;
+}
+.form-group {
+  margin-bottom: 20px;
+}
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #555;
+}
+.form-group input, .form-group textarea {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 15px;
+  transition: 0.3s;
+}
+.form-group input:focus, .form-group textarea:focus {
+  border-color: #2e7d32;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+}
+
+/* --- Tóm Tắt Đơn Hàng --- */
+.checkout-summary-section {
+  flex: 2;
+  background: #f9fbf9; /* Nền xanh lá cực nhạt */
+  padding: 30px;
+  border-radius: 8px;
+  border: 1px solid #e8f5e9;
+  height: fit-content;
+}
+.checkout-summary-section h3 {
+  margin-top: 0;
+  border-bottom: 2px solid #e8f5e9;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+}
+
+.summary-items {
+  margin-bottom: 20px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 15px;
+  color: #555;
+}
+.item-name b { color: #d32f2f; margin-left: 5px; }
+.item-price { font-weight: 500; }
+
+.summary-totals {
+  border-top: 1px dashed #ccc;
+  padding-top: 15px;
+  margin-bottom: 20px;
+}
+.total-line {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  color: #555;
+}
+.total-line.final {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+.final-price {
+  color: #d32f2f;
+  font-size: 24px;
+}
+
+/* --- Phương Thức Thanh Toán --- */
+.payment-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+.payment-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  background: white;
+  transition: 0.3s;
+}
+.payment-option.active {
+  border-color: #2e7d32;
+  background: #e8f5e9;
+  font-weight: bold;
+  color: #2e7d32;
+}
+.payment-option input {
+  accent-color: #2e7d32;
+  width: 18px;
+  height: 18px;
+}
+
+/* --- KHUNG MÃ QR --- */
+.qr-code-box {
+  background: white;
+  border: 2px dashed #4caf50;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 25px;
+  animation: fadeIn 0.5s ease-in-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.qr-guide {
+  color: #2e7d32;
+  font-weight: bold;
+  margin-bottom: 15px;
+  font-size: 16px;
+}
+.qr-image {
+  width: 250px;
+  max-width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  margin-bottom: 15px;
+}
+.qr-note {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 5px;
+}
+.qr-note b { color: #d32f2f; }
+
+/* Nút đặt hàng */
+.place-order-btn {
+  width: 100%;
+  padding: 18px;
+  background: #2e7d32;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.place-order-btn:hover {
+  background: #1b5e20;
+  box-shadow: 0 4px 15px rgba(46, 125, 50, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .checkout-content { flex-direction: column; }
+  .checkout-form-section, .checkout-summary-section {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .checkout-container {
+    padding: 0 10px;
+  }
+  .checkout-header h1 {
+    font-size: 24px;
+  }
+  .final-price {
+    font-size: 20px;
+  }
+  .place-order-btn {
+    padding: 15px;
+    font-size: 14px;
+  }
+}
