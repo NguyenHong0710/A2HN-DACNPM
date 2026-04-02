@@ -77,11 +77,11 @@ const Home = () => {
   };
 
   // 5. DANH MỤC NỔI BẬT
-  const circleCategories = [
+const circleCategories = [
     { name: 'Nhẫn Bạc', img: 'https://images.unsplash.com/photo-1605100804763-247f67b6348e?w=200' },
-    { name: 'Dây Chuyền', img: 'https://images.unsplash.com/photo-1599643477877-530e55620206?w=200' },
-    { name: 'Bông Tai', img: 'https://images.unsplash.com/photo-1635767798638-3e25273a8236?w=200' },
-    { name: 'Lắc Tay', img: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=200' },
+    { name: 'Dây Chuyền Bạc', img: 'https://images.unsplash.com/photo-1599643477877-530e55620206?w=200' },
+    { name: 'Bông Tai Bạc', img: 'https://images.unsplash.com/photo-1635767798638-3e25273a8236?w=200' },
+    { name: 'Lắc & Vòng Tay', img: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=200' },
   ];
 
   return (
