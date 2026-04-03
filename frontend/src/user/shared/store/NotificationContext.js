@@ -25,18 +25,24 @@ export const NotificationProvider = ({ children }) => {
       return;
     }
 
-    try {
+try {
       const token = getAuthToken();
       const res = await fetch('http://127.0.0.1:8000/api/notifications', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json' // BẮT BUỘC PHẢI CÓ DÒNG NÀY
         }
       });
+      
+      // Kiểm tra nếu API không trả về 200 OK thì ném lỗi để nhảy xuống catch
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
       
       const result = await res.json();
       
       // Hỗ trợ cả trường hợp API trả về mảng trực tiếp hoặc bọc trong object { data: [] }
-      const finalData = Array.isArray(result) ? result : (Array.isArray(result.data) ? result.data : []);
+      const finalData = Array.isArray(result) ? result : (Array.isArray(result?.data) ? result.data : []);
       
       setNotifications(finalData);
     } catch (err) {

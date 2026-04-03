@@ -15,11 +15,14 @@ const ManageUser = () => {
   const [modal, setModal] = useState({ type: null, user: null });
   const [editData, setEditData] = useState({});
 
-  // [MỚI THÊM] Hàm lấy Token gắn vào Header
+  // CẢI TIẾN: Thêm log để kiểm tra Token có thực sự tồn tại không
   const getHeaders = () => {
-    // LƯU Ý: Đảm bảo key 'auth_token' này khớp với key bạn lưu lúc Login
-    // Nếu lúc login bạn dùng localStorage.setItem('token', ...), hãy đổi chữ 'auth_token' thành 'token'
-    const token = localStorage.getItem('auth_token'); 
+    // 🛑 QUAN TRỌNG: Bạn cần chắc chắn chữ 'auth_token' hoặc 'token' là đúng
+    // Nếu biến này in ra là "null" trong tab Console (F12), tức là bạn chưa lưu token khi Login!
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('access_token'); 
+    
+    console.log("Token hiện tại đang gửi lên API:", token); 
+
     return {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -29,20 +32,19 @@ const ManageUser = () => {
     };
   };
 
-  // 1. Lấy danh sách (Đã thêm getHeaders)
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const response = await axios.get(`${API_BASE_URL}/users`, {
-        ...getHeaders(), // Trải mảng headers vào config của axios
+        ...getHeaders(), 
         params: { activeTab, searchTerm }
       });
       const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
       setUsers(data);
     } catch (error) {
-      console.error("Lỗi API:", error);
+      console.error("Lỗi API fetchUsers:", error);
       if (error.response && error.response.status === 401) {
-          alert("Phiên đăng nhập hết hạn hoặc bạn chưa có quyền truy cập. Vui lòng đăng nhập lại!");
+          alert("Phiên đăng nhập hết hạn hoặc chưa có token hợp lệ. Vui lòng đăng nhập lại!");
       }
       setUsers([]);
     } finally {
@@ -59,15 +61,13 @@ const ManageUser = () => {
     setEditData({ ...user, password: '', password_confirmation: '', role: user.role || 'customer' }); 
   };
 
-  // 2. Xử lý các hành động (Đã thêm getHeaders vào tất cả PUT/DELETE)
   const handleAction = async () => {
     if (!modal.user) return;
     const userId = modal.user.id; 
-    const config = getHeaders(); // Lấy config chứa token
+    const config = getHeaders(); 
 
     try {
       if (modal.type === 'edit') {
-        // Tham số thứ 3 của axios.put là config (chứa headers)
         await axios.put(`${API_BASE_URL}/users/${userId}`, {
           name: editData.name, email: editData.email, phone: editData.phone
         }, config);
@@ -84,14 +84,14 @@ const ManageUser = () => {
         }, config);
       }
       else if (modal.type === 'delete') {
-        // Tham số thứ 2 của axios.delete là config (chứa headers)
         await axios.delete(`${API_BASE_URL}/users/${userId}`, config);
       }
 
       alert("Thực hiện thành công!");
       closeModal();
-      fetchUsers(); // Refresh lại data
+      fetchUsers(); 
     } catch (error) {
+      console.error("Lỗi Action:", error.response);
       alert(error.response?.data?.message || "Lỗi thao tác!");
     }
   };
@@ -106,11 +106,11 @@ const ManageUser = () => {
           <div className="modal-form">
             <div className="input-group">
               <label><User size={16}/> Họ và tên</label>
-              <input type="text" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
+              <input type="text" value={editData.name || ''} onChange={e => setEditData({...editData, name: e.target.value})} />
             </div>
             <div className="input-group">
               <label><Mail size={16}/> Email</label>
-              <input type="email" value={editData.email} onChange={e => setEditData({...editData, email: e.target.value})} />
+              <input type="email" value={editData.email || ''} onChange={e => setEditData({...editData, email: e.target.value})} />
             </div>
             <div className="input-group">
               <label><Phone size={16}/> Số điện thoại</label>

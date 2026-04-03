@@ -34,7 +34,7 @@ const Invoice = () => {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/get_invoices`, {
+     const res = await fetch(`${API_BASE_URL}/admin/all-invoices`, {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
