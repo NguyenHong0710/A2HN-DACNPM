@@ -80,16 +80,38 @@ const Shop = () => {
   }, [searchQuery]);
 
   // 3. ĐỊNH DẠNG SẢN PHẨM (Xử lý ảnh và giá)
+ // 3. ĐỊNH DẠNG SẢN PHẨM (Xử lý ảnh và giá)
   const formatProduct = (product) => {
-    const getImgUrl = (img) => {
-      if (!img) return 'https://via.placeholder.com/300x300?text=Lumina+Jewelry';
-      if (img.startsWith('http')) return img;
-      return `${BASE_URL}/storage/${img}`;
+    const getImgUrl = (imgData) => {
+      if (!imgData) return 'https://via.placeholder.com/300x300?text=Lumina+Jewelry';
+      
+      try {
+        // Trường hợp imgData là chuỗi JSON (ví dụ: '["products/abc.jpg"]')
+        const parsed = typeof imgData === 'string' ? JSON.parse(imgData) : imgData;
+        
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const firstImg = parsed[0];
+          return firstImg.startsWith('http') ? firstImg : `${BASE_URL}/storage/${firstImg}`;
+        }
+        
+        // Trường hợp imgData là chuỗi tên file thô (ví dụ: 'products/abc.jpg')
+        if (typeof imgData === 'string') {
+          return imgData.startsWith('http') ? imgData : `${BASE_URL}/storage/${imgData}`;
+        }
+      } catch (e) {
+        // Nếu không parse được JSON, coi nó là chuỗi tên file bình thường
+        if (typeof imgData === 'string') {
+          return imgData.startsWith('http') ? imgData : `${BASE_URL}/storage/${imgData}`;
+        }
+      }
+      
+      return 'https://via.placeholder.com/300x300?text=Lumina+Jewelry';
     };
 
     return {
       ...product,
-      displayImage: getImgUrl(product.image),
+      // Lưu ý: Kiểm tra xem API của bạn trả về field là 'image' hay 'images'
+      displayImage: getImgUrl(product.image || product.images), 
       displayPrice: typeof product.price === 'string' ? parseFloat(product.price) : (product.price || 0),
       displayCategory: product.category?.name || product.category_name || product.category || 'Trang sức'
     };

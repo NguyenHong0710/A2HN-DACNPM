@@ -23,11 +23,9 @@ class Hoadon extends Model
         'amount', 
         'payment_method', 
         'deliveryStatus', 
-        'address'
+        'address',
+        'images' // <--- ĐÃ THÊM DÒNG NÀY: Để lưu ảnh đại diện của đơn hàng (nếu cần)
     ];
-
-    // GHI CHÚ: Đã xóa $keyType = 'string' và $incrementing = false 
-    // vì Database hiện tại dùng ID số tự tăng (Hướng 1).
 
     /**
      * Thiết lập mối quan hệ: 1 Hóa đơn có NHIỀU Chi tiết hóa đơn

@@ -1,17 +1,42 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../store/CartContext';
-import { FiTrash2, FiMinus, FiPlus, FiArrowLeft, FiShield } from 'react-icons/fi'; // Dùng FiShield cho bảo mật trang sức
+import { FiTrash2, FiMinus, FiPlus, FiArrowLeft, FiShield } from 'react-icons/fi';
 import './Cart.css';
 
 const Cart = () => {
-  const { cartItems, removeFromCart, updateQuantity, totalPrice } = useCart(); 
+  const { cartItems, removeFromCart, updateQuantity, totalPrice } = useCart();
+
+  // --- 1. COPY LOGIC XỬ LÝ ẢNH TỪ TRANG HOME ---
+  const getImageUrl = (images) => {
+    if (!images) return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
+
+    try {
+      // Nếu images đã là object/array từ Context thì dùng luôn, nếu là string thì parse
+      const parsed = typeof images === 'string' ? JSON.parse(images) : images;
+      
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const firstImage = parsed[0];
+        return firstImage.startsWith('http') 
+          ? firstImage 
+          : `http://127.0.0.1:8000/storage/${firstImage}`;
+      }
+      // Trường hợp là string đơn lẻ (tên file)
+      if (typeof parsed === 'string') {
+          return parsed.startsWith('http') ? parsed : `http://127.0.0.1:8000/storage/${parsed}`;
+      }
+    } catch (e) {
+      if (typeof images === 'string' && images.length > 0) {
+          return images.startsWith('http') ? images : `http://127.0.0.1:8000/storage/${images}`;
+      }
+    }
+    return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
+  };
 
   if (cartItems.length === 0) {
     return (
       <div className="cart-empty-container" style={{ padding: '100px 20px', textAlign: 'center' }}>
         <div className="empty-cart-content">
-          {/* Thay icon giỏ hàng trống bằng icon kim cương mờ hoặc hộp quà */}
           <img src="https://cdn-icons-png.flaticon.com/512/10056/10056557.png" alt="Empty Cart" style={{ width: '120px', opacity: 0.3 }} />
           <h2 style={{ fontFamily: 'Playfair Display, serif', marginTop: '30px' }}>Kiệt tác đang chờ đón bạn</h2>
           <p style={{ color: '#888', marginBottom: '30px' }}>Túi đồ của quý khách hiện đang trống. Hãy khám phá những bộ sưu tập mới nhất từ Lumina.</p>
@@ -42,7 +67,12 @@ const Cart = () => {
               }}>
                 <div className="item-image-wrapper" style={{ width: '100px', height: '100px', overflow: 'hidden' }}>
                   <Link to={`/product/${item.id}`}>
-                    <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    {/* --- 2. THAY ĐỔI Ở ĐÂY: Dùng getImageUrl thay vì item.image --- */}
+                    <img 
+                      src={getImageUrl(item.images || item.image)} 
+                      alt={item.name} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    />
                   </Link>
                 </div>
                 
@@ -51,10 +81,11 @@ const Cart = () => {
                     textDecoration: 'none', color: '#111', fontSize: '18px', 
                     fontFamily: 'Playfair Display', fontWeight: 'bold' 
                   }}>{item.name}</Link>
-                  <p style={{ color: '#c5a059', fontWeight: 'bold', marginTop: '5px' }}>{item.price.toLocaleString()}đ</p>
+                  <p style={{ color: '#c5a059', fontWeight: 'bold', marginTop: '5px' }}>
+                    {new Intl.NumberFormat('vi-VN').format(item.price)}đ
+                  </p>
                 </div>
 
-                {/* Kiểm soát số lượng tối giản */}
                 <div className="item-quantity-control" style={{ display: 'flex', alignItems: 'center', border: '1px solid #eee' }}>
                   <button 
                     style={{ padding: '8px', border: 'none', background: 'none', cursor: 'pointer' }}
@@ -73,7 +104,7 @@ const Cart = () => {
                 </div>
 
                 <div className="item-total-price" style={{ width: '120px', textAlign: 'right', fontWeight: 'bold' }}>
-                  {(item.price * item.quantity).toLocaleString()}đ
+                  {new Intl.NumberFormat('vi-VN').format(item.price * item.quantity)}đ
                 </div>
 
                 <button 
@@ -93,14 +124,13 @@ const Cart = () => {
           </div>
         </div>
 
-        {/* Tổng kết đơn hàng phong cách sang trọng */}
         <div className="cart-summary-section" style={{ flex: '1', minWidth: '300px' }}>
           <div className="summary-card" style={{ padding: '30px', backgroundColor: '#fafafa', border: '1px solid #eee' }}>
             <h3 style={{ fontFamily: 'Playfair Display, serif', marginBottom: '20px' }}>Thông tin đơn hàng</h3>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', color: '#666' }}>
               <span>Tạm tính</span>
-              <span>{totalPrice.toLocaleString()}đ</span>
+              <span>{new Intl.NumberFormat('vi-VN').format(totalPrice)}đ</span>
             </div>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', color: '#666' }}>
@@ -112,7 +142,9 @@ const Cart = () => {
             
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px' }}>
               <span style={{ fontWeight: 'bold' }}>Tổng cộng</span>
-              <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#111' }}>{totalPrice.toLocaleString()}đ</span>
+              <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#111' }}>
+                {new Intl.NumberFormat('vi-VN').format(totalPrice)}đ
+              </span>
             </div>
             
            <Link to="/checkout" className="btn-checkout">

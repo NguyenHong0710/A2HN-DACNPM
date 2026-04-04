@@ -5,7 +5,7 @@ import Services from './Services';
 import { FiArrowRight, FiShoppingBag, FiStar } from 'react-icons/fi';
 import './Home.css';
 import { API_BASE as API_BASE_URL } from "../../../config";
-
+import { GiDiamondRing, GiNecklace, GiDropEarrings, GiGemChain } from 'react-icons/gi';
 const Home = () => {
   const { addToCart } = useCart();
   const [dbProducts, setDbProducts] = useState([]);
@@ -67,21 +67,34 @@ const Home = () => {
 
   // 4. LOGIC XỬ LÝ ẢNH
   const getImageUrl = (images) => {
-    try {
-      const parsed = typeof images === 'string' ? JSON.parse(images) : images;
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return `http://127.0.0.1:8000/storage/${parsed[0]}`;
-      }
-    } catch (e) {}
-    return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
-  };
+  if (!images) return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
 
-  // 5. DANH MỤC NỔI BẬT
-const circleCategories = [
-    { name: 'Nhẫn Bạc', img: 'https://images.unsplash.com/photo-1605100804763-247f67b6348e?w=200' },
-    { name: 'Dây Chuyền Bạc', img: 'https://images.unsplash.com/photo-1599643477877-530e55620206?w=200' },
-    { name: 'Bông Tai Bạc', img: 'https://images.unsplash.com/photo-1635767798638-3e25273a8236?w=200' },
-    { name: 'Lắc & Vòng Tay', img: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=200' },
+  try {
+    // Nếu images là chuỗi (JSON string), ta mới parse
+    const parsed = typeof images === 'string' ? JSON.parse(images) : images;
+    
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const firstImage = parsed[0];
+      // Kiểm tra nếu là đường dẫn đầy đủ (http) thì dùng luôn, không thì nối storage
+      return firstImage.startsWith('http') 
+        ? firstImage 
+        : `http://127.0.0.1:8000/storage/${firstImage}`;
+    }
+  } catch (e) {
+    // Nếu parse lỗi mà bản thân images đã là string tên file
+    if (typeof images === 'string' && images.length > 0) {
+        return `http://127.0.0.1:8000/storage/${images}`;
+    }
+  }
+  return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
+};
+
+// 5. DANH MỤC NỔI BẬT (Đã đổi sang Icon và tên chuẩn khớp với filter trang Shop)
+  const circleCategories = [
+    { name: 'Nhẫn Bạc', icon: <GiDiamondRing /> },
+    { name: 'Dây Chuyền Bạc', icon: <GiNecklace /> },
+    { name: 'Bông Tai Bạc', icon: <GiDropEarrings /> },
+    { name: 'Lắc & Vòng Tay', icon: <GiGemChain /> },
   ];
 
   return (
@@ -110,7 +123,7 @@ const circleCategories = [
       <Services />
 
       <div className="home-container">
-        {/* 2. DANH MỤC NỔI BẬT (VÒNG TRÒN) */}
+        {/* 2. DANH MỤC NỔI BẬT (ICON SANG TRỌNG) */}
         <section className="category-section">
           <div className="section-header">
             <h2 className="section-title">Danh Mục Nổi Bật</h2>
@@ -118,10 +131,10 @@ const circleCategories = [
           <div className="category-grid-circles">
             {circleCategories.map((cat, idx) => (
               <Link to={`/shop?category=${encodeURIComponent(cat.name)}`} key={idx} className="category-item-circle">
-                <div className="circle-img">
-                  <img src={cat.img} alt={cat.name} />
+                <div className="circle-icon-wrapper">
+                  {cat.icon}
                 </div>
-                <span>{cat.name}</span>
+                <span className="category-name">{cat.name}</span>
               </Link>
             ))}
           </div>
@@ -148,9 +161,27 @@ const circleCategories = [
                         <img src={getImageUrl(product.images)} alt={product.name} />
                     </Link>
                     <div className="product-actions">
-                      <button onClick={() => addToCart(product)} className="action-btn">
-                        <FiShoppingBag />
-                      </button>
+  <button 
+  onClick={() => {
+    // 1. Sử dụng hàm getImageUrl để lấy link ảnh tuyệt đối (đã xử lý JSON/Mảng)
+    const validImageUrl = getImageUrl(product.images);
+
+    // 2. Tạo object mới mang theo trường 'images' (đúng tên bạn muốn)
+    const productToCart = {
+      ...product,
+      images: validImageUrl // Gán URL đã xử lý xong vào đây
+    };
+
+    // 3. Đưa vào giỏ hàng
+    addToCart(productToCart);
+    
+    // Log thử để kiểm tra xem có trường 'images' chưa
+    console.log("Đã thêm vào giỏ:", productToCart);
+  }} 
+  className="action-btn"
+>
+  <FiShoppingBag />
+</button>
                     </div>
                   </div>
                   <div className="product-info">

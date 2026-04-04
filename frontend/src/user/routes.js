@@ -33,7 +33,7 @@ const routes = [
   { path: '/cart', name: 'Cart', element: Cart },
   { path: '/checkout', name: 'Checkout', element: Checkout },
   // Trong file routes.js
-  { path: '/my-orders', name: 'Order History', element: OrderHistory },
+  { path: '/orders', name: 'Order History', element: OrderHistory },
   { path: '/notifications', name: 'Notifications', element: NotificationPage },
 ];
 

@@ -16,6 +16,7 @@ const Voucher = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // 1. Hook đếm ngược thời gian
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -28,12 +29,51 @@ const Voucher = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // 2. Hook lấy dữ liệu từ Laravel Backend
   useEffect(() => {
     const fetchVouchers = async () => {
       try {
         setLoading(true);
-        const data = await vouchersAPI.getAll();
-        setVouchers(Array.isArray(data) ? data : []);
+        
+        // Gọi API đến Laravel
+const response = await fetch('http://127.0.0.1:8000/api/promotions');      
+        if (!response.ok) {
+          throw new Error('Lỗi kết nối đến máy chủ.');
+        }
+
+        const rawData = await response.json();
+
+        // Chuyển đổi dữ liệu từ Backend sang chuẩn của Frontend
+        const formattedData = rawData
+          // Chỉ lấy các mã đang hoạt động (status = 1)
+          .filter(item => item.status === 1 || item.status === '1')
+          .map(item => {
+            // Xử lý chuỗi hiển thị Mức Giảm
+            let discountText = '';
+            if (item.type === 'percent') {
+              discountText = `Giảm ${item.value}%`;
+            } else {
+              discountText = `Giảm ${Number(item.value).toLocaleString('vi-VN')}đ`;
+            }
+
+            // Xử lý chuỗi hiển thị Ngày Hạn
+            let dateText = 'Không giới hạn';
+            if (item.end_date) {
+              const endDate = new Date(item.end_date);
+              dateText = endDate.toLocaleDateString('vi-VN');
+            }
+
+            return {
+              id: item.id,
+              code: item.code,
+              discount: discountText,
+              desc: item.name,
+              date: dateText,
+              minOrder: 0, // Mặc định là 0 (nếu DB có cột min_order, bạn sửa thành item.min_order)
+            };
+          });
+
+        setVouchers(formattedData);
         setError('');
       } catch (err) {
         setError(err.message || 'Không thể tải danh sách ưu đãi.');
@@ -41,6 +81,7 @@ const Voucher = () => {
         setLoading(false);
       }
     };
+    
     fetchVouchers();
   }, []);
 
@@ -48,8 +89,7 @@ const Voucher = () => {
     navigator.clipboard.writeText(code);
     alert(`Lumina Jewelry: Đã lưu mã ưu đãi ${code}`);
   };
-
-  const handleApply = (code) => {
+const handleApply = (code) => {
     localStorage.setItem('selectedVoucherCode', code);
     navigate('/checkout');
   };
@@ -62,7 +102,7 @@ const Voucher = () => {
         background: 'linear-gradient(135deg, #111 0%, #333 100%)', 
         color: '#c5a059', 
         padding: '40px',
-        borderRadius: '0px', // Đẳng cấp thường dùng góc vuông hoặc bo cực nhẹ
+        borderRadius: '0px',
         borderBottom: '3px solid #c5a059'
       }}>
         <div style={{ textAlign: 'left' }}>
@@ -108,9 +148,13 @@ const Voucher = () => {
           Đặc quyền của riêng bạn
         </h3>
         
+        {error && <p style={{ color: 'red' }}>{error}</p>}
+        
         <div className="voucher-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '25px' }}>
           {loading && <p>Đang kiểm tra đặc quyền...</p>}
           
+          {!loading && vouchers.length === 0 && !error && <p>Hiện chưa có mã ưu đãi nào khả dụng.</p>}
+
           {!loading && vouchers.map((v) => (
             <div key={v.id} className="voucher-card" style={{ 
               border: '1px solid #e0e0e0',
@@ -118,7 +162,7 @@ const Voucher = () => {
               background: '#fff',
               transition: '0.3s'
             }}>
-              {/* Phần bên trái: Code và Discount */}
+{/* Phần bên trái: Code và Discount */}
               <div style={{ 
                 background: '#111', 
                 color: '#c5a059', 

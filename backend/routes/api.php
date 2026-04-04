@@ -16,12 +16,24 @@ use App\Http\Controllers\Api\DoanhthuController;
 | API Routes
 |--------------------------------------------------------------------------
 */
-
+use App\Http\Controllers\Api\PromotionController;
+use App\Http\Controllers\Api\NewsController; // Thêm controller Tin Tức
+Route::get('/news', [NewsController::class, 'index']); // Xem danh sách bài viết
+Route::get('/news/{id}', [NewsController::class, 'show']); // Xem chi tiết 1 bài viết
+// Nhóm các API cho Promotions
+Route::prefix('promotions')->group(function () {
+    Route::get('/', [PromotionController::class, 'index']);           // Lấy danh sách
+    Route::get('/products', [PromotionController::class, 'getProducts']); // Lấy SP để đưa vào Select Box
+    Route::post('/create', [PromotionController::class, 'store']);        // Tạo mã mới
+    Route::post('/update', [PromotionController::class, 'update']);       // Cập nhật mã
+    Route::delete('/delete', [PromotionController::class, 'destroy']);    // Xóa mã
+    Route::post('/toggle-status', [PromotionController::class, 'toggleStatus']); // Bật/tắt
+});
 // --- 1. XÁC THỰC (PUBLIC) ---
 Route::post('/login', [AuthController::class, 'login']); 
 Route::post('/register/init', [AuthController::class, 'registerInit']);
 Route::post('/register/verify', [AuthController::class, 'registerVerify']);
-
+Route::post('/vouchers/validate', [PromotionController::class, 'validateVoucher']);
 // --- 2. PUBLIC ROUTES (XEM SẢN PHẨM/DANH MỤC KHÔNG CẦN LOGIN) ---
 Route::get('/categories', [CategoryController::class, 'index']); 
 Route::get('/categories/{id}', [CategoryController::class, 'show']);
