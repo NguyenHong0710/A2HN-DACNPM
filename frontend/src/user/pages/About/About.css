@@ -6,7 +6,7 @@
 
 /* --- PHẦN 1: BANNER --- */
 .about-banner {
-  background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&w=1200&q=80');
+  background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('/Screenshot (510).png');
   background-size: cover;
   background-position: center;
   min-height: 300px;

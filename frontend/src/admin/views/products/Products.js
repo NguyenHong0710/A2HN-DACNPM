@@ -36,14 +36,21 @@ const Products = () => {
   const [productToImport, setProductToImport] = useState(null)
   const [importQuantity, setImportQuantity] = useState('')
   const [activeDetailImage, setActiveDetailImage] = useState('') 
-
+  const [categories, setCategories] = useState([]);
+  
   // Form Data
   const [formData, setFormData] = useState({
     name: '', category: 'Rau Củ', price: '', stock: '', 
     unit: 'kg', origin: '', description: '', status: 'Còn hàng', 
     images: [] 
   })
-
+  // Hàm giúp hiển thị ảnh đúng dù DB lưu kiểu gì
+const getImageUrl = (path) => {
+    if (!path) return 'https://via.placeholder.com/150?text=No+Image';
+    if (path.startsWith('http')) return path;
+    // Nối với URL server của bạn (Laravel)
+    return `http://127.0.0.1:8000/storage/${path}`;
+};
   // ==========================================
   // --- 1. LẤY DANH SÁCH SẢN PHẨM (GET) ---
   // ==========================================
@@ -86,6 +93,29 @@ const Products = () => {
           setLoading(false);
       }
   }
+  
+  // Thêm hàm này bên dưới hàm fetchProducts của bạn
+const fetchCategories = async () => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/categories`, { // Đảm bảo backend có route này
+            method: 'GET',
+            headers: { 
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            }
+        });
+        const result = await res.json();
+        // Giả sử API trả về mảng [{id: 1, name: 'Nhẫn'}, ...]
+        setCategories(result.data || result || []);
+    } catch (error) {
+        console.error("Lỗi lấy danh mục:", error);
+    }
+};
+
+useEffect(() => {
+    fetchProducts();
+    fetchCategories(); // Gọi thêm hàm này
+}, []);
 
   useEffect(() => {
       fetchProducts();
@@ -233,7 +263,7 @@ const Products = () => {
      setEditingProduct(product);
      setFormData({ 
          name: product.name || '',
-         category: product.category || 'Rau Củ',
+         category: product.category || '',
          price: product.price || '',
          stock: product.stock || '',
          unit: product.unit || 'kg',
@@ -253,15 +283,17 @@ const Products = () => {
    setModalVisible(true);
   }
 
-  const openDetailModal = (product) => {
-    setViewProduct(product);
-    const firstImg = (product.images && product.images.length > 0) 
-        ? product.images[0] 
-        : 'https://via.placeholder.com/300?text=No+Image';
-    setActiveDetailImage(firstImg);
-    setDetailModalVisible(true);
-  }
-
+ const openDetailModal = (product) => {
+  setViewProduct(product);
+  
+  // Dùng getImageUrl để đảm bảo đường dẫn có http://127.0.0.1:8000/storage/...
+  const firstImg = (product.images && product.images.length > 0) 
+      ? getImageUrl(product.images[0]) 
+      : 'https://via.placeholder.com/300?text=No+Image';
+      
+  setActiveDetailImage(firstImg);
+  setDetailModalVisible(true);
+}
   const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
   const getBadgeColor = (status) => {
@@ -691,7 +723,20 @@ const Products = () => {
               </CCol>
               
               <CCol xs={12} className="mb-3"><CFormLabel>Tên Sản Phẩm</CFormLabel><CFormInput className="form-control-green" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /></CCol>
-              <CCol md={6} xs={12} className="mb-3"><CFormLabel>Danh Mục</CFormLabel><CFormSelect className="form-select-green" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}><option value="Rau Củ">Rau Củ</option><option value="Trái Cây">Trái Cây</option><option value="Gạo & Ngũ cốc">Gạo & Ngũ cốc</option></CFormSelect></CCol>
+              <CCol md={6} xs={12} className="mb-3"><CFormLabel>Danh Mục</CFormLabel>
+              <CFormSelect 
+                className="form-select-green" 
+                value={formData.category} 
+                onChange={e => setFormData({...formData, category: e.target.value})}
+              >
+                <option value="">-- Chọn danh mục --</option>
+                {categories.map((cat) => (
+                  <option key={cat.name} value={cat.name}> 
+                    {cat.name}
+                  </option>
+                ))}
+              </CFormSelect>
+              </CCol>
               
               <CCol md={6} xs={12} className="mb-3"><CFormLabel>Xuất Xứ</CFormLabel><CFormInput className="form-control-green" placeholder="Ví dụ: Đà Lạt, Tiền Giang..." value={formData.origin} onChange={e => setFormData({...formData, origin: e.target.value})} /></CCol>
               
@@ -725,10 +770,19 @@ const Products = () => {
                             <CCol md={5} className="text-center mb-3">
                                 <img src={activeDetailImage} className="detail-main-img" alt="Product" />
                                 <div className="detail-gallery-thumbs">
-                                    {viewProduct.images && viewProduct.images.map((img, idx) => (
-                                        <img key={idx} src={img} className={`detail-thumb ${activeDetailImage === img ? 'active' : ''}`} onClick={() => setActiveDetailImage(img)} />
-                                    ))}
-                                </div>
+                                  {viewProduct.images && viewProduct.images.map((img, idx) => {
+                                      // Phải convert img (tên file) thành URL đầy đủ ở đây
+                                      const fullImageUrl = getImageUrl(img);
+                                      return (
+                                          <img 
+                                              key={idx} 
+                                              src={fullImageUrl} 
+                                              className={`detail-thumb ${activeDetailImage === fullImageUrl ? 'active' : ''}`} 
+                                              onClick={() => setActiveDetailImage(fullImageUrl)} 
+                                          />
+                                      );
+                                  })}
+                              </div>
                             </CCol>
                             <CCol md={7} className="ps-md-4">
                                 <h3 className="fw-bold mb-1">{viewProduct.name}</h3>

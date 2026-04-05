@@ -245,7 +245,33 @@
   transform: translateY(-10px);
   box-shadow: 0 15px 25px rgba(197, 160, 89, 0.25);
   border-color: #111;
+
 }
+
+.category-item-circle:hover .category-name {
+  color: #c5a059;
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .category-grid-circles {
+    gap: 30px;
+  }
+  .circle-icon-wrapper {
+    width: 80px;
+    height: 80px;
+    font-size: 35px;
+    margin-bottom: 12px;
+  }
+  .category-name {
+    font-size: 0.95rem;
+  }
+  .category-section .section-title {
+    font-size: 1.8rem;
+  }
+}
+
 
 .category-item-circle:hover .category-name {
   color: #c5a059;

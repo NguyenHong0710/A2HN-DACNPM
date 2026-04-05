@@ -20,25 +20,34 @@ const ProductDetail = () => {
   // 1. Hàm xử lý URL ảnh (Giống bên Home/Shop)
   const getImageUrl = (images) => {
     try {
-        // 1. Parse JSON nếu images là chuỗi, nếu là mảng thì giữ nguyên
-        const parsed = typeof images === 'string' ? JSON.parse(images) : images;
+        if (!images) return 'https://placehold.jp/24/c5a059/ffffff/500x500.png?text=Lumina+Jewelry';
+
+        // 1. Parse JSON nếu images là chuỗi (dạng '["path/to/img.jpg"]')
+        const parsed = typeof images === 'string' && (images.startsWith('[') || images.startsWith('{')) 
+            ? JSON.parse(images) 
+            : images;
         
-        if (Array.isArray(parsed) && parsed.length > 0) {
-            const firstImage = parsed[0];
-            
-            // 2. Nếu đã là link đầy đủ (http...) thì trả về luôn
-            if (firstImage.startsWith('http')) return firstImage;
-            
-            // 3. Nếu là đường dẫn tương đối, nối với URL Backend
-            // Đảm bảo không bị lặp chữ "storage/"
-            const cleanPath = firstImage.startsWith('/') ? firstImage.substring(1) : firstImage;
-            return `http://127.0.0.1:8000/${cleanPath}`;
-        }
+        // Lấy đường dẫn ảnh (nếu là mảng thì lấy cái đầu tiên, nếu là chuỗi thì dùng luôn)
+        let targetPath = Array.isArray(parsed) ? parsed[0] : parsed;
+        
+        if (!targetPath) return 'https://placehold.jp/24/c5a059/ffffff/500x500.png?text=Lumina+Jewelry';
+
+        // 2. Nếu đã là link đầy đủ (http...) thì trả về luôn
+        if (targetPath.startsWith('http')) return targetPath;
+        
+        // 3. Xử lý đường dẫn tương đối
+        // Loại bỏ dấu gạch chéo ở đầu nếu có để tránh lặp //
+        const cleanPath = targetPath.startsWith('/') ? targetPath.substring(1) : targetPath;
+        
+        // QUAN TRỌNG: Phải có chữ /storage/ ở giữa domain và path
+        return `http://127.0.0.1:8000/storage/${cleanPath}`;
     } catch (e) {
-        console.error("Lỗi parse ảnh:", e);
+        console.error("Lỗi xử lý ảnh:", e);
+        // Nếu lỗi parse nhưng targetPath là chuỗi thô, thử nối storage luôn
+        if (typeof images === 'string' && !images.startsWith('[')) {
+             return `http://127.0.0.1:8000/storage/${images}`;
+        }
     }
-    
-    // 4. Fallback khi không có ảnh (Đổi sang placehold.jp để tránh lỗi Connection Closed)
     return 'https://placehold.jp/24/c5a059/ffffff/500x500.png?text=Lumina+Jewelry';
 };
   // 2. Lấy dữ liệu sản phẩm từ API
@@ -78,10 +87,23 @@ const ProductDetail = () => {
   if (!product) return <div className="not-found">Không tìm thấy sản phẩm! <Link to="/">Về trang chủ</Link></div>;
 
   // Xử lý danh sách ảnh
-  const productImages = product.images 
-    ? (typeof product.images === 'string' && product.images.startsWith('[') ? JSON.parse(product.images) : [product.image])
-    : [product.image];
-
+  // Xử lý danh sách ảnh an toàn
+  const productImages = (() => {
+    if (!product.images && !product.image) return [];
+    
+    const rawData = product.images || product.image;
+    if (Array.isArray(rawData)) return rawData;
+    
+    try {
+      if (typeof rawData === 'string' && rawData.startsWith('[')) {
+        return JSON.parse(rawData);
+      }
+    } catch (e) {
+      console.error("Lỗi parse mảng ảnh:", e);
+    }
+    
+    return [rawData]; // Trả về mảng 1 phần tử nếu là chuỗi đơn
+  })();
   const handleNextImage = (e) => {
     e.stopPropagation();
     setCurrentImageIndex((prev) => (prev === productImages.length - 1 ? 0 : prev + 1));
@@ -140,9 +162,21 @@ const ProductDetail = () => {
                 <input type="number" value={quantity} readOnly />
                 <button onClick={() => setQuantity(quantity + 1)}>+</button>
             </div>
-            <button className="btn-add-cart" onClick={() => addToCart(product, quantity)}>
-              <FiShoppingBag /> Thêm vào giỏ
-            </button>
+              <button className="btn-add-cart" onClick={() => {
+    // Log thử xem biến product hiện tại có ảnh không
+    console.log("Product gốc từ API:", product);
+
+    const productToCart = {
+        ...product,
+        // Ép trường image lấy từ productImages mà bạn đã xử lý ở dòng 104
+        image: Array.isArray(productImages) ? productImages[0] : (product.image || product.images)
+    };
+    
+    console.log("Dữ liệu sẽ bay vào giỏ:", productToCart);
+    addToCart(productToCart, quantity);
+}}>
+  <FiShoppingBag /> Thêm vào giỏ
+</button>
           </div>
 
           <div className="pd-policy">

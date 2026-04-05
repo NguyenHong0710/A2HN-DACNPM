@@ -15,15 +15,16 @@ import AdminLayout from "../admin/layout/DefaultLayout.js";
 import adminCoreStyles from "../admin/scss/style.scss?inline";
 import adminExampleStyles from "../admin/scss/examples.scss?inline";
 
+import NewsDetail from './pages/About/NewsDetail';
 // ✅ Đã đổi sang admin
 const admin_BASE_PATH = '/admin';
 
-const AUTH_REQUIRED_USER_PATHS = new Set(['/cart', '/checkout', '/messages']);
+const AUTH_REQUIRED_USER_PATHS = new Set(['/cart', '/checkout', '/messages', '/orders']);
 
 function App() {
   const location = useLocation();
   const shouldShowFloatingChatbox = location.pathname !== '/messages';
-
+     
   React.useEffect(() => {
     const isAdminPath =
       location.pathname === admin_BASE_PATH ||
@@ -96,6 +97,7 @@ function App() {
                 }}
               >
                 <Routes>
+                  <Route path="/news/:id" element={<NewsDetail />} />
                   {userRoutes.map((route) => {
                     const Component = route.element;
                     const requiresAuth = AUTH_REQUIRED_USER_PATHS.has(route.path);

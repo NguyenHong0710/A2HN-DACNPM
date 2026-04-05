@@ -71,27 +71,31 @@ export const CartProvider = ({ children }) => {
 
   // Hàm thêm vào giỏ
   const addToCart = (product, quantity = 1) => {
-    if (!requireCartLogin()) return false;
+  if (!requireCartLogin()) return false;
 
-    const safeQty = normalizeQuantity(quantity);
+  const safeQty = normalizeQuantity(quantity);
 
-    setCartItems((prev) => {
-      const existingItem = prev.find((item) => item.id === product.id);
-      if (existingItem) {
-        // Nếu đã có, tăng số lượng
-        return prev.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: normalizeQuantity(item.quantity + safeQty) }
-            : item
-        );
-      } else {
-        // Nếu chưa có, thêm mới
-        return [...prev, { ...product, quantity: safeQty }];
-      }
-    });
-    alert("Đã thêm vào giỏ hàng!");
-    return true;
+  // ĐẢM BẢO mang theo trường images gốc từ API vào giỏ hàng
+  const productToSave = {
+    ...product,
+    images: product.images // Chắc chắn giữ lại trường này
   };
+
+  setCartItems((prev) => {
+    const existingItem = prev.find((item) => item.id === productToSave.id);
+    if (existingItem) {
+      return prev.map((item) =>
+        item.id === productToSave.id
+          ? { ...item, quantity: normalizeQuantity(item.quantity + safeQty) }
+          : item
+      );
+    } else {
+      return [...prev, { ...productToSave, quantity: safeQty }];
+    }
+  });
+  alert("Đã thêm vào giỏ hàng!");
+  return true;
+};
 
   // Hàm xóa khỏi giỏ
   const removeFromCart = (productId) => {

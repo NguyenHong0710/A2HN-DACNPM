@@ -3,16 +3,17 @@ import {
   CCard, CCardBody, CCardHeader, CCol, CRow, CTable, CTableBody, CTableHead,
   CTableHeaderCell, CTableRow, CTableDataCell, CButton, CFormInput, CModal,
   CModalHeader, CModalTitle, CModalBody, CModalFooter, CFormSelect, CFormLabel,
-  CBadge, CProgress, CFormSwitch, CAvatar
+  CBadge, CProgress, CFormSwitch
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { 
-  cilPlus, cilPencil, cilTrash, cilSearch, cilTag, cilBasket, cilCalendar, cilUserFollow
+  cilPlus, cilPencil, cilTrash, cilSearch, cilTag, cilBasket, cilCalendar
 } from '@coreui/icons'
 
-// --- CẤU HÌNH API (GIỮ NGUYÊN) ---
+// --- CẤU HÌNH API MỚI CHO LARAVEL ---
 import { API_BASE } from 'src/config';
-const API_URL = `${API_BASE}/promotions.php`;
+// Trỏ vào tiền tố route API của Laravel, giả sử config của bạn trỏ vào root domain
+const API_URL = 'http://127.0.0.1:8000/api/promotions';
 const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
 const admin_ID = storedUser.id || 1; 
 
@@ -29,21 +30,27 @@ const Promotions = () => {
     startDate: '', endDate: '', limit: 100
   })
 
-  // --- LOGIC XỬ LÝ (GIỮ NGUYÊN) ---
+  // --- LOGIC XỬ LÝ (ĐÃ CẬP NHẬT THEO LARAVEL ROUTE) ---
+  
+  // 1. Lấy danh sách khuyến mãi
   const fetchPromotions = async () => {
     try {
-      const response = await fetch(`${API_URL}?action=get_all&admin_id=${admin_ID}`);
+      const response = await fetch(`${API_URL}?admin_id=${admin_ID}`);
       const data = await response.json();
       setPromotions(Array.isArray(data) ? data : []);
     } catch (error) { console.error("Lỗi tải dữ liệu:", error); }
   }
 
+  // 2. Bật / Tắt trạng thái
   const toggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus ? 0 : 1;
     try {
-        const response = await fetch(`${API_URL}?action=toggle_status`, {
+        const response = await fetch(`${API_URL}/toggle-status`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json' 
+            },
             body: JSON.stringify({ id: id, status: newStatus })
         });
         const result = await response.json();
@@ -53,9 +60,10 @@ const Promotions = () => {
     } catch (error) { console.error("Lỗi kết nối status:", error); }
   }
 
+  // 3. Lấy danh sách sản phẩm
   const fetchProducts = async () => {
     try {
-      const response = await fetch(`${API_URL}?action=get_admin_products&admin_id=${admin_ID}`);
+      const response = await fetch(`${API_URL}/products?admin_id=${admin_ID}`);
       const data = await response.json();
       setadminProducts(Array.isArray(data) ? data : []);
     } catch (error) { console.error("Lỗi tải sản phẩm:", error); }
@@ -65,8 +73,7 @@ const Promotions = () => {
     fetchPromotions(); 
     fetchProducts(); 
   }, []);
-
-  const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
+const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
 
   const openModal = (item = null) => {
     if (item) {
@@ -89,14 +96,21 @@ const Promotions = () => {
     setModalVisible(true)
   }
 
+  // 4. Lưu (Tạo mới hoặc Cập nhật)
   const handleSave = async () => {
     if(!formData.code || !formData.value) return alert("Vui lòng nhập đủ thông tin mã và giá trị!")
     if(formData.scope === 'product' && !formData.productId) return alert("Vui lòng chọn sản phẩm áp dụng!")
+    
     const payload = { id: editingItem ? editingItem.id : null, ...formData, admin_id: admin_ID }
+    
     try {
         const action = editingItem ? 'update' : 'create';
-        const response = await fetch(`${API_URL}?action=${action}`, {
+        const response = await fetch(`${API_URL}/${action}`, {
             method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
             body: JSON.stringify(payload)
         });
         const result = await response.json();
@@ -108,10 +122,18 @@ const Promotions = () => {
     } catch (error) { alert("Lỗi kết nối!"); }
   }
 
+  // 5. Xóa khuyến mãi
   const handleDelete = async (id) => {
       if(window.confirm('Bạn có chắc chắn muốn xóa mã giảm giá này?')) {
           try {
-              const response = await fetch(`${API_URL}?action=delete&id=${id}`);
+              // Dùng phương thức DELETE chuẩn RESTful
+              const response = await fetch(`${API_URL}/delete?id=${id}`, {
+                  method: 'DELETE',
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json' 
+                  }
+              });
               const result = await response.json();
               if(result.status === 'success') fetchPromotions();
           } catch (error) { alert("Lỗi khi xóa"); }
@@ -135,7 +157,7 @@ const Promotions = () => {
         }
         .header-search {
           background: #f8f9fa;
-          border: 1px solid #e9ecef;
+border: 1px solid #e9ecef;
           border-radius: 12px;
           transition: 0.3s;
         }
@@ -210,7 +232,7 @@ const Promotions = () => {
                     placeholder="Tìm theo mã hoặc tên voucher..." 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                />
+/>
                 <CIcon icon={cilSearch} className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" />
              </div>
              <CButton className="btn-create text-white fw-bold text-nowrap" onClick={() => openModal()}>
@@ -268,7 +290,7 @@ const Promotions = () => {
                       <div className="small text-muted text-truncate mt-1" style={{maxWidth:'150px'}} title={item.product_name}>
                         {item.product_name}
                       </div>
-                    )}
+)}
                   </CTableDataCell>
 
                   <CTableDataCell>
@@ -329,7 +351,7 @@ const Promotions = () => {
                 </CTableRow>
               ))}
               {filteredPromotions.length === 0 && (
-                <CTableRow>
+<CTableRow>
                   <CTableDataCell colSpan={7} className="text-center py-5 text-muted">
                     Không tìm thấy mã giảm giá nào phù hợp.
                   </CTableDataCell>
@@ -340,7 +362,7 @@ const Promotions = () => {
         </CCardBody>
       </CCard>
 
-      {/* --- MODAL (GIỮ NGUYÊN LOGIC, SỬA GIAO DIỆN) --- */}
+      {/* --- MODAL --- */}
       <CModal visible={modalVisible} onClose={() => setModalVisible(false)} size="lg" alignment="center" className="modal-modern">
         <CModalHeader className="bg-light border-0 px-4 pt-4">
           <CModalTitle className="fw-bold h5">
@@ -390,7 +412,7 @@ const Promotions = () => {
                     >
                         <option value="">-- Danh sách sản phẩm của bạn --</option>
                         {adminProducts.map(p => (
-                            <option key={p.id} value={p.id}>{p.name} - ({formatCurrency(p.price)})</option>
+<option key={p.id} value={p.id}>{p.name} - ({formatCurrency(p.price)})</option>
                         ))}
                     </CFormSelect>
                   </div>

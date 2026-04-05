@@ -3,7 +3,7 @@
 }
 
 .shop-banner {
-  background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://wallpaperaccess.com/full/1624848.jpg');
+  background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('/Screenshot (510).png');
   background-size: cover;
   background-position: center;
   height: 250px;
@@ -28,16 +28,15 @@
 
 .shop-content {
   display: flex;
-  max-width: 1200px;
+  max-width: 1400px; /* Đảm bảo số này từ 1400px trở lên, hoặc dùng 95% để tràn màn hình */
   margin: 0 auto;
   padding: 0 20px;
-  gap: 40px;
+  gap: 40px; /* Khoảng cách giữa cột Phân Loại và Sản Phẩm, có thể giảm xuống 30px nếu thấy xa quá */
 }
 
 /* Sidebar */
 .sidebar {
-  flex: 1;
-  min-width: 250px;
+  flex: 0 0 220px; /* Cố định chiều rộng cột trái là 220px (Bạn có thể giảm xuống 200px nếu muốn nhỏ hơn nữa) */
 }
 .sidebar h3 {
   color: #82ae46;
@@ -88,7 +87,8 @@
 
 /* Product Grid */
 .product-list-container {
-  flex: 3;
+  flex: 1; /* Lệnh này giúp cột bên phải tự động chiếm TRỌN VẸN toàn bộ không gian còn lại */
+  min-width: 0; /* Giúp chống lỗi tràn khung nếu màn hình nhỏ */
 }
 .list-header {
   display: flex;
@@ -124,8 +124,8 @@
 }
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 25px;
+  grid-template-columns: repeat(3, 1fr); /* Lệnh này bắt buộc chia chính xác làm 3 cột bằng nhau */
+  gap: 25px; /* Khoảng cách giữa các thẻ sản phẩm */
 }
 
 /* Card Style (Dùng chung) */
@@ -353,7 +353,16 @@
     height: 32px;
   }
 }
-
+@media (max-width: 992px) {
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr); /* Ipad/Màn hình vừa: 2 sản phẩm 1 hàng */
+  }
+}
+@media (max-width: 768px) {
+  .products-grid {
+    grid-template-columns: 1fr; /* Điện thoại: 1 sản phẩm 1 hàng */
+  }
+}
 @media (max-width: 480px) {
   .shop-content {
     padding: 0 14px;
@@ -371,4 +380,44 @@
   .products-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ==========================================================
+   PHẦN CSS MỚI THÊM VÀO ĐỂ TẠO KHUNG SẢN PHẨM NỔI BẬT 
+   (Dành cho class .product-card trong file React của bạn)
+   ========================================================== */
+
+.product-card {
+  background-color: #ffffff;
+  border: 1px solid #eeeeee; /* Tạo khung viền mỏng */
+  border-radius: 8px; /* Bo góc nhẹ */
+  padding: 15px; /* Khoảng cách từ nội dung ra viền */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.3s ease; /* Hiệu ứng mượt mà */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); /* Bóng nhẹ mặc định */
+  height: 100%; /* Đảm bảo các thẻ có chiều cao bằng nhau */
+}
+
+/* Hiệu ứng khi di chuột vào sản phẩm */
+.product-card:hover {
+  transform: translateY(-8px); /* Nổi thẻ lên trên */
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12); /* Bóng đổ to và rõ hơn */
+  border-color: #c5a059; /* Đổi viền sang màu vàng thương hiệu */
+}
+
+/* Đảm bảo hình ảnh bên trong có khoảng trống chuẩn */
+.product-card .product-img {
+  border-radius: 4px;
+}
+
+/* Hiệu ứng Hover cho nút "Thêm vào giỏ" bên trong thẻ */
+.product-card .add-to-cart-btn {
+  transition: all 0.3s ease;
+}
+
+.product-card .add-to-cart-btn:hover {
+  background-color: #c5a059 !important; /* Đổi màu nút sang vàng khi hover */
+  color: #111 !important; /* Chữ chuyển sang đen */
 }

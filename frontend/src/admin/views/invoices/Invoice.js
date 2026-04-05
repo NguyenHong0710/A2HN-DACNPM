@@ -57,13 +57,8 @@ const Invoice = () => {
     fetchInvoices();
   }, []);
 
-  // --- 2. XỬ LÝ HỦY ĐƠN HÀNG QUA API ---
-  const handleConfirmCancel = async () => {
-    if (!cancelReason.trim()) {
-      alert('Vui lòng nhập lý do hủy đơn hàng!');
-      return;
-    }
-    
+  // --- 2. XỬ LÝ CẬP NHẬT TRẠNG THÁI NHANH ---
+  const handleUpdateStatus = async (id, newStatus) => {
     const token = localStorage.getItem('token');
     try {
       const res = await fetch(`${API_BASE_URL}/update_order_status`, {
@@ -74,27 +69,33 @@ const Invoice = () => {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          order_code: invoiceToCancel.id, // Truyền mã ORD-...
-          status: 'Hủy',
-          reason: cancelReason // Truyền lý do nếu Backend có lưu
+          id: id,      // ĐỔI TỪ order_code THÀNH id ĐỂ KHỚP VỚI CONTROLLER
+          status: newStatus 
         })
+      
       });
       const result = await res.json();
 
       if (result.status === 'success') {
-        alert("Đã hủy đơn hàng thành công!");
-        setCancelModalVisible(false);
-        fetchInvoices(); // Tải lại danh sách
-        
-        if (selectedInvoice && selectedInvoice.id === invoiceToCancel.id) {
-          setModalVisible(false);
-        }
+        alert("Cập nhật trạng thái thành công!");
+        fetchInvoices(); 
       } else {
         alert("Lỗi: " + result.message);
       }
     } catch (err) {
       alert("Lỗi kết nối Server.");
     }
+  };
+
+  // --- 3. XỬ LÝ HỦY ĐƠN HÀNG QUA MODAL (Có lý do) ---
+  const handleConfirmCancel = async () => {
+    if (!cancelReason.trim()) {
+      alert('Vui lòng nhập lý do hủy đơn hàng!');
+      return;
+    }
+    
+    await handleUpdateStatus(invoiceToCancel.id, 'cancelled');
+    setCancelModalVisible(false);
   }
 
   // --- LOGIC TÌM KIẾM ---
@@ -120,10 +121,10 @@ const Invoice = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Đã thanh toán': case 'Đã giao hàng': case 'Chuyển khoản': return 'success';
-      case 'Chờ thanh toán': case 'Đang giao hàng': case 'Tiền mặt': return 'warning';
-      case 'Chờ lấy hàng': case 'Online': return 'info';
-      case 'Hủy': case 'Đã hủy': return 'danger';
+      case 'delivered': case 'Đã giao hàng': return 'success';
+      case 'pending': case 'Chờ xử lý': return 'warning';
+      case 'shipping': case 'Đang giao hàng': return 'info';
+      case 'cancelled': case 'Hủy': return 'danger';
       default: return 'secondary';
     }
   };
@@ -170,7 +171,6 @@ const Invoice = () => {
         .table-green-custom td { padding: 16px; vertical-align: middle; border-bottom: 1px solid #f1f1f1; }
         .text-price { color: #dc2626; font-weight: 700; }
         .invoice-box { border: 1px solid #e5e7eb; padding: 20px; border-radius: 10px; background-color: #ffffff; color: #333; }
-        .mobile-card { background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
       `}</style>
 
       <CCard className="card-green-theme mb-4">
@@ -180,7 +180,7 @@ const Invoice = () => {
           </h5>
           <div className="d-flex flex-column flex-sm-row gap-2 w-100 w-md-auto">
             <div className="position-relative w-100">
-                <CFormInput className="ps-5 w-100" placeholder="Tìm mã đơn, tên khách..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <CFormInput className="ps-5 w-100" placeholder="Tìm mã đơn..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 <CIcon icon={cilSearch} className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" />
             </div>
             <CButton style={{backgroundColor: '#D99485', border: 'none'}} className="fw-semibold text-white w-100 w-sm-auto" onClick={handleExportExcel}>
@@ -193,63 +193,50 @@ const Invoice = () => {
           {loading ? (
             <div className="text-center py-5"><CSpinner color="success"/></div>
           ) : (
-            <>
-              {/* DESKTOP TABLE */}
-              <div className="d-none d-md-block">
-                <CTable hover responsive className="table-green-custom mb-0">
-                    <CTableHead>
-                        <CTableRow>
-                            <CTableHeaderCell>Mã HĐ</CTableHeaderCell>
-                            <CTableHeaderCell>Khách Hàng</CTableHeaderCell>
-                            <CTableHeaderCell>Tổng Tiền</CTableHeaderCell>
-                            <CTableHeaderCell>Phương Thức</CTableHeaderCell>
-                            <CTableHeaderCell className="text-center">Vận Chuyển</CTableHeaderCell>
-                            <CTableHeaderCell className="text-end">Hành Động</CTableHeaderCell>
-                        </CTableRow>
-                    </CTableHead>
-                    <CTableBody>
-                    {filteredInvoices.map((item) => (
-                      <CTableRow key={item.id}>
-                        <CTableDataCell className="fw-bold text-info">{item.id}</CTableDataCell>
-                        <CTableDataCell>{item.customer || 'N/A'}</CTableDataCell>
-                        <CTableDataCell className="text-price">{formatCurrency(item.amount)}</CTableDataCell>
-                        <CTableDataCell>{renderPaymentMethod(item.payment_method)}</CTableDataCell>
-                        <CTableDataCell className="text-center">
-                            <CBadge color={getStatusColor(item.deliveryStatus)}>{item.deliveryStatus}</CBadge>
-                        </CTableDataCell>
-                        <CTableDataCell className="text-end">
-                            <CTooltip content="Chi tiết"><CButton color="link" className="p-1" onClick={() => openInvoiceDetail(item)}><CIcon icon={cilInfo} /></CButton></CTooltip>
-                            <CTooltip content="In"><CButton color="link" className="p-1 ms-2" onClick={handlePrint}><CIcon icon={cilPrint} /></CButton></CTooltip>
-                            {item.deliveryStatus !== 'Hủy' && (
-                                <CTooltip content="Hủy đơn"><CButton color="link" className="p-1 ms-1 text-danger" onClick={() => openCancelModal(item)}><CIcon icon={cilBan} /></CButton></CTooltip>
-                            )}
-                        </CTableDataCell>
-                      </CTableRow>
-                    ))}
-                    </CTableBody>
-                </CTable>
-              </div>
-
-              {/* MOBILE CARDS */}
-              <div className="d-block d-md-none">
+            <CTable hover responsive className="table-green-custom mb-0">
+                <CTableHead>
+                    <CTableRow>
+                        <CTableHeaderCell>Mã HĐ</CTableHeaderCell>
+                        <CTableHeaderCell>Khách Hàng</CTableHeaderCell>
+                        <CTableHeaderCell>Tổng Tiền</CTableHeaderCell>
+                        <CTableHeaderCell>Phương Thức</CTableHeaderCell>
+                        <CTableHeaderCell className="text-center">Vận Chuyển</CTableHeaderCell>
+                        <CTableHeaderCell className="text-end">Hành Động</CTableHeaderCell>
+                    </CTableRow>
+                </CTableHead>
+                <CTableBody>
                 {filteredInvoices.map((item) => (
-                    <div key={item.id} className="mobile-card shadow-sm">
-                        <div className="d-flex justify-content-between mb-2">
-                            <div className="fw-bold text-info">{item.id}</div>
-                            <div className="text-price">{formatCurrency(item.amount)}</div>
+                  <CTableRow key={item.id}>
+                    <CTableDataCell className="fw-bold text-info">{item.id}</CTableDataCell>
+                    <CTableDataCell>{item.customer || 'N/A'}</CTableDataCell>
+                    <CTableDataCell className="text-price">{formatCurrency(item.amount)}</CTableDataCell>
+                    <CTableDataCell>{renderPaymentMethod(item.payment_method)}</CTableDataCell>
+                    <CTableDataCell className="text-center">
+                        <CBadge color={getStatusColor(item.deliveryStatus)}>{item.deliveryStatus}</CBadge>
+                    </CTableDataCell>
+                    <CTableDataCell className="text-end">
+                        <div className="d-flex align-items-center justify-content-end gap-1">
+                            {/* Ô CHỌN TRẠNG THÁI NHANH */}
+                            <select 
+                                className="form-select form-select-sm w-auto me-2"
+                                value={item.deliveryStatus}
+                                onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
+                                style={{ fontSize: '0.8rem', borderColor: '#e5e7eb' }}
+                            >
+                                <option value="Chờ xử lý">Chờ xử lý</option>
+                                <option value="Hủy đơn">Hủy đơn</option>
+                                <option value="Đang giao">Đang giao</option>
+                                <option value="Đã giao">Đã giao</option>
+                            </select>
+
+                            <CTooltip content="Chi tiết"><CButton color="link" className="p-1" onClick={() => openInvoiceDetail(item)}><CIcon icon={cilInfo} /></CButton></CTooltip>
+                            <CTooltip content="In"><CButton color="link" className="p-1 ms-1" onClick={handlePrint}><CIcon icon={cilPrint} /></CButton></CTooltip>
                         </div>
-                        <div className="small mb-1">Khách: {item.customer}</div>
-                        <div className="mb-3"><CBadge color={getStatusColor(item.deliveryStatus)}>{item.deliveryStatus}</CBadge></div>
-                        <div className="d-flex justify-content-end gap-2">
-                            <CButton size="sm" color="info" variant="outline" onClick={() => openInvoiceDetail(item)}>Chi tiết</CButton>
-                            {item.deliveryStatus !== 'Hủy' && (
-                                <CButton size="sm" color="danger" variant="outline" onClick={() => openCancelModal(item)}>Hủy đơn</CButton>
-                            )}
-                        </div>
-                    </div>
+                    </CTableDataCell>
+                  </CTableRow>
                 ))}
-              </div>
-            </>
+                </CTableBody>
+            </CTable>
           )}
         </CCardBody>
       </CCard>
@@ -264,14 +251,6 @@ const Invoice = () => {
                     <CCol xs={6}><h4 className="fw-bold" style={{ color: "#D99485" }}>Lumina Jewelry</h4></CCol>
                     <CCol xs={6} className="text-end"><h5 className="fw-bold">{selectedInvoice.id}</h5><div className="small text-muted">{selectedInvoice.date}</div></CCol>
                 </CRow>
-                
-                <div className="mb-4">
-                    <h6 className="text-primary fw-bold">Thông tin khách hàng:</h6>
-                    <div>{selectedInvoice.customer} - {selectedInvoice.phone}</div>
-                    <div className="small text-muted">{selectedInvoice.address}</div>
-                    <div className="mt-2">Phương thức: <strong>{selectedInvoice.payment_method}</strong></div>
-                </div>
-
                 <CTable hover responsive bordered>
                     <CTableHead className="table-light">
                       <CTableRow>
@@ -301,20 +280,6 @@ const Invoice = () => {
           <CModalFooter>
             <CButton color="secondary" onClick={() => setModalVisible(false)}>Đóng</CButton>
             <CButton color="success" onClick={handlePrint} className="text-white"><CIcon icon={cilPrint} className="me-2"/> In hóa đơn</CButton>
-          </CModalFooter>
-      </CModal>
-
-      {/* MODAL HỦY ĐƠN */}
-      <CModal visible={cancelModalVisible} onClose={() => setCancelModalVisible(false)} alignment="center">
-          <CModalHeader><CModalTitle className="text-danger">Xác Nhận Hủy Đơn</CModalTitle></CModalHeader>
-          <CModalBody>
-            <p>Bạn chắc chắn muốn hủy hóa đơn <strong>{invoiceToCancel?.id}</strong>?</p>
-            <CFormLabel className="small fw-bold">Lý do hủy:</CFormLabel>
-            <CFormTextarea rows={3} value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} placeholder="Nhập lý do hủy đơn hàng..."/>
-          </CModalBody>
-          <CModalFooter>
-            <CButton color="secondary" onClick={() => setCancelModalVisible(false)}>Đóng</CButton>
-            <CButton color="danger" className="text-white" onClick={handleConfirmCancel}>Xác Nhận Hủy</CButton>
           </CModalFooter>
       </CModal>
     </div>
