@@ -118,23 +118,40 @@ const rewriteUrl = (input, origin) => {
 };
 
 export const installApiFetchAdapter = () => {
-  if (typeof window === 'undefined' || typeof window.fetch !== 'function') return;
-  if (window.__apiFetchAdapterInstalled) return;
+  if (typeof window === 'undefined' || typeof window.fetch !== 'function') return;
+  if (window.__apiFetchAdapterInstalled) return;
 
-  const nativeFetch = window.fetch.bind(window);
+  const nativeFetch = window.fetch.bind(window);
 
-  window.fetch = async (input, init) => {
-    if (!shouldRewriteUrl(input)) {
-      return nativeFetch(input, init);
-    }
-    const origin = await resolveApiOrigin(nativeFetch);
-    const rewritten = rewriteUrl(input, origin);
-    
-    // Log để bạn kiểm tra trong Console (F12)
-    console.log(`🚀 Request gửi đi: ${rewritten}`);
-    
-    return nativeFetch(rewritten, init);
-  };
+  // Đảm bảo init mặc định là một object rỗng
+  window.fetch = async (input, init = {}) => { 
+    if (!shouldRewriteUrl(input)) {
+      return nativeFetch(input, init);
+    }
+    const origin = await resolveApiOrigin(nativeFetch);
+    const rewritten = rewriteUrl(input, origin);
+    
+    // 🛠 ĐÃ SỬA: Tự động gắn Token và cấu hình Accept JSON cho MỌI request fetch
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const headers = new Headers(init.headers || {});
+    
+    // Nếu có token và lập trình viên chưa tự gắn Authorization, ta sẽ tự gắn vào
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+    
+    // Bắt buộc báo với server "Tôi muốn nhận dữ liệu chuẩn JSON" để tránh sập web vì dính HTML
+    if (!headers.has('Accept')) {
+      headers.set('Accept', 'application/json');
+    }
+    
+    init.headers = headers;
 
-  window.__apiFetchAdapterInstalled = true;
+    // Log để bạn kiểm tra trong Console (F12)
+    console.log(`🚀 Request gửi đi: ${rewritten}`);
+    
+    return nativeFetch(rewritten, init);
+  };
+
+  window.__apiFetchAdapterInstalled = true;
 };
