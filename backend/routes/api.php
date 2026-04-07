@@ -41,6 +41,7 @@ Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/search', [ProductController::class, 'search']); 
 Route::get('/products/{id}', [ProductController::class, 'show']);
 
+
 // --- 3. PROTECTED ROUTES (YÊU CẦU ĐĂNG NHẬP) ---
 Route::middleware(['auth:sanctum'])->group(function () {
     
@@ -64,13 +65,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/products', [ProductController::class, 'store']);
     Route::put('/products/{id}', [ProductController::class, 'update']);
     Route::delete('/products/{id}', [ProductController::class, 'destroy']);
-
+    Route::post('/products/{id}/add-stock', [ProductController::class, 'addStock']);
     // --- QUẢN LÝ NGƯỜI DÙNG (ADMIN) ---
     Route::get('/users', [UserController::class, 'index']);
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::put('/users/{id}/change-role', [UserController::class, 'changeRole']);
     Route::put('/users/{id}/change-password', [UserController::class, 'changePassword']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    Route::get('/admin/logs', [UserController::class, 'getActivityLogs']);
+    Route::delete('/admin/logs/cleanup', [UserController::class, 'deleteOldLogs']);
 
     // --- QUẢN LÝ HÓA ĐƠN (INVOICES) ---
     // Route lấy danh sách cho trang Hóa Đơn (khớp với React)
@@ -95,6 +98,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/revenue', [DoanhthuController::class, 'getRevenue']);
         Route::get('/inventory', [DoanhthuController::class, 'getInventory']);
         Route::get('/top-products', [DoanhthuController::class, 'getTopProducts']);
+        Route::post('/update-stock', [DoanhthuController::class, 'updateStock']);
     });
 
     // --- CÁC ROUTE TIỆN ÍCH KHÁC ---

@@ -132,7 +132,7 @@ const Header = () => {
           <Link to="/" className={location.pathname === '/' ? 'active' : ''}>Trang Chủ</Link>
           <Link to="/shop" className={location.pathname === '/shop' ? 'active' : ''}>Bộ Sưu Tập</Link>
           <Link to="/about" className={location.pathname === '/about' ? 'active' : ''}>Câu Chuyện</Link>
-          <Link to="/voucher" className={location.pathname === '/voucher' ? 'active' : ''}>Đặc Quyền</Link>
+          <Link to="/voucher" className={location.pathname === '/voucher' ? 'active' : ''}>Voucher</Link>
           <Link to="/contact" className={location.pathname === '/contact' ? 'active' : ''}>Dịch Vụ</Link>
         </nav>
 

@@ -1,6 +1,57 @@
 /* Import Font chữ sang trọng */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Montserrat:wght@300;400;500;600&display=swap');
+/* Tải font Inter nếu bạn chưa có để nút nhìn hiện đại hơn */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600&display=swap');
 
+/* --- Container chứa hai nút để căn chỉnh --- */
+.luxury-profile-actions {
+  display: flex;
+  gap: 16px; /* Khoảng cách giữa hai nút */
+  margin-top: 24px;
+  justify-content: center; /* Căn giữa */
+  font-family: 'Inter', sans-serif;
+}
+
+/* --- Style chung cho cả hai nút --- */
+.luxury-profile-btn {
+  padding: 10px 24px;
+  border-radius: 8px; /* Bo góc tròn nhẹ sang trọng */
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease; /* Hiệu ứng mượt mà */
+  min-width: 140px; /* Độ rộng tối thiểu để nút nhìn cân đối */
+  border: none;
+}
+
+/* --- Style riêng cho nút LƯU THAY ĐỔI (Nút chính - Solid Vàng đồng) --- */
+.btn-save-luxury {
+  background-color: #D99485; /* Màu vàng đồng/Rose Gold của Lumina Jewelry */
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(217, 148, 133, 0.2);
+}
+
+.btn-save-luxury:hover {
+  background-color: #c57f71; /* Màu đậm hơn một chút khi hover */
+  transform: translateY(-2px); /* Hiệu ứng bay lên nhẹ */
+  box-shadow: 0 6px 12px -2px rgba(217, 148, 133, 0.3);
+}
+
+.btn-save-luxury:active {
+  transform: translateY(1px);
+}
+
+/* --- Style riêng cho nút HỦY (Nút thứ cấp - Outline Gray) --- */
+.btn-cancel-luxury {
+  background-color: transparent;
+  color: #7a7a7a; /* Màu xám nhẹ */
+  border: 1px solid #d1d1d1; /* Viền xám */
+}
+
+.btn-cancel-luxury:hover {
+  background-color: #f5f5f5; /* Nền xám nhạt khi hover */
+  color: #333; /* Chữ tối hơn */
+}
 :root {
   --gold-primary: #c5a059;
   --gold-light: #e2c275;
@@ -340,4 +391,59 @@
   .profile-sidebar {
     width: 100%;
   }
+}
+/* Đảm bảo khung chứa ảnh có position: relative để định vị nút con */
+.luxury-avatar-frame {
+  position: relative;
+  display: inline-block; /* Hoặc flex, tùy bố cục của bạn */
+}
+
+/* Định dạng ảnh đại diện (giữ nguyên hoặc tinh chỉnh) */
+.avatar-img {
+  width: 120px; /* Hoặc kích thước bạn đang dùng */
+  height: 120px;
+  border-radius: 50%; /* Ảnh tròn */
+  object-fit: cover;
+  border: 4px solid #fff; /* Viền trắng sang trọng */
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Định dạng nút đổi ảnh (Badge) nằm phía trên */
+.avatar-edit-badge {
+  position: absolute;
+  /* Định vị ở góc dưới bên phải ảnh */
+  bottom: 5px; 
+  right: 5px;
+  
+  /* Kích thước và hình dạng */
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  
+  /* Màu sắc phong cách Lumina Jewelry (Rose Gold/Vàng đồng) */
+  background-color: #D99485; 
+  color: white;
+  
+  /* Căn giữa icon */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Hiệu ứng và con trỏ */
+  cursor: pointer;
+  border: 3px solid #fff; /* Viền trắng để tách biệt với ảnh */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: all 0.3s ease;
+  z-index: 10; /* Đảm bảo luôn nằm trên cùng */
+}
+
+/* Hiệu ứng khi di chuột vào nút */
+.avatar-edit-badge:hover {
+  background-color: #c57f71; /* Màu đậm hơn một chút */
+  transform: scale(1.1); /* Phóng to nhẹ */
+}
+
+/* Đảm bảo icon bên trong có kích thước phù hợp */
+.avatar-edit-badge svg {
+  font-size: 14px;
 }

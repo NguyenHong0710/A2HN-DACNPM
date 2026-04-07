@@ -2,6 +2,7 @@ import React from 'react'
 import CIcon from '@coreui/icons-react'
 import {
   cilSpeedometer,
+  cilHistory,
   cilChartPie,
   cilPuzzle,
   cilContact,
@@ -47,7 +48,12 @@ const getNavItems = (unreadCount) => [
 
   { component: CNavItem, name: 'Doanh thu', to: '/admin/revenue' },
   
-
+{
+  component: CNavItem,
+  name: 'Nhật ký hệ thống',
+  to: '/admin/logs',
+  icon: <CIcon icon={cilHistory} customClassName="nav-icon" />,
+},
   // ===== TƯƠNG TÁC =====
   {
     component: CNavTitle,

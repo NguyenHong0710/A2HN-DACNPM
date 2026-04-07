@@ -61,13 +61,13 @@ const AppHeader = () => {
         {/* Menu điều hướng chính */}
         <CHeaderNav className="d-none d-md-flex">
           <CNavItem>
-            <CNavLink to="/vendor/dashboard" as={NavLink}>Dashboard</CNavLink>
+            <CNavLink to="/admin/dashboard" as={NavLink}>Dashboard</CNavLink>
           </CNavItem>
           <CNavItem>
-            <CNavLink to="/vendor/products" as={NavLink}>Sản phẩm</CNavLink>
+            <CNavLink to="/admin/products" as={NavLink}>Sản phẩm</CNavLink>
           </CNavItem>
           <CNavItem>
-            <CNavLink to="/vendor/revenue" as={NavLink}>Doanh thu</CNavLink>
+            <CNavLink to="/admin/revenue" as={NavLink}>Doanh thu</CNavLink>
           </CNavItem>
         </CHeaderNav>
 

@@ -10,6 +10,8 @@ use App\Models\ChiTietHoadon;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
+
+
 class DoanhthuController extends Controller
 {
     /**
@@ -82,12 +84,12 @@ class DoanhthuController extends Controller
                         'amount' => (float)$order->amount,
                         'status' => $order->deliveryStatus,
                         'items' => $order->chiTiet->map(function ($item) {
-                            return [
-                                'name' => $item->product ? $item->product->name : 'Sản phẩm đã xóa',
-                                'quantity' => (int)($item->quantity ?? 1),
-                                'price' => (float)$item->price
-                            ];
-                        })
+                        return [
+                            'name' => $item->product ? $item->product->name : ($item->name ?? 'Sản phẩm đã xóa'),
+                            'quantity' => (int)($item->qty ?? 1), // <-- ĐỔI quantity THÀNH qty
+                            'price' => (float)$item->price
+                        ];
+                    })
                     ];
                 });
 
@@ -115,16 +117,33 @@ class DoanhthuController extends Controller
     }
 
     public function getTopProducts()
-    {
-        $topProducts = Product::join('chi_tiet_hoadons', 'products.id', '=', 'chi_tiet_hoadons.product_id')
+{
+    try {
+        $topProducts = DB::table('chi_tiet_hoadons')
             ->join('hoadons', 'hoadons.id', '=', 'chi_tiet_hoadons.hoadon_id')
             ->where('hoadons.deliveryStatus', '!=', 'Đã hủy')
-            ->select('products.name', DB::raw('SUM(chi_tiet_hoadons.quantity) as sold'), DB::raw('SUM(chi_tiet_hoadons.quantity * chi_tiet_hoadons.price) as revenue'))
-            ->groupBy('products.id', 'products.name')
-            ->orderByDesc('sold')->take(5)->get();
+            ->select(
+                'chi_tiet_hoadons.name', // Lấy tên trực tiếp từ bảng chi tiết
+                DB::raw('SUM(chi_tiet_hoadons.qty) as total_sold'),
+                DB::raw('SUM(chi_tiet_hoadons.qty * chi_tiet_hoadons.price) as total_revenue')
+            )
+            ->groupBy('chi_tiet_hoadons.name') // Nhóm theo tên sản phẩm
+            ->orderByDesc('total_sold')
+            ->take(5)
+            ->get();
 
-        return response()->json(['status' => 'success', 'data' => $topProducts]);
+        return response()->json([
+            'status' => 'success', 
+            'data' => $topProducts
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Lỗi: ' . $e->getMessage()
+        ], 500);
     }
+}
 
     public function updateStock(Request $request)
     {

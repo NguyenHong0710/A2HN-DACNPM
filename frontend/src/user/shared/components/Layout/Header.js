@@ -16,12 +16,15 @@ const Header = () => {
   const [showNotify, setShowNotify] = useState(false);
   const notifyRef = useRef(null);
 
-  // 👇 NEW: Get user role for vendor link
+  // 👇 GIỮ NGUYÊN LOGIC USER CỦA BẠN
   const [userRole, setUserRole] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
+
+  // 👇 MỚI: Thêm state để quản lý chữ đang gõ trong ô tìm kiếm
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
@@ -65,13 +68,15 @@ const Header = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // 👇 CẬP NHẬT: Hàm handleSearch dùng được cho cả Enter và Click icon
   const handleSearch = (e) => {
-    if (e.key === 'Enter' && e.target.value.trim() !== '') {
-      navigate(`/?search=${e.target.value}`);
+    // Nếu nhấn Enter hoặc nhấn trực tiếp vào icon kính lúp
+    if ((e.key === 'Enter' || e.type === 'click') && searchTerm.trim() !== '') {
+      navigate(`/?search=${encodeURIComponent(searchTerm.trim())}`);
     }
   };
 
-  // Click ra ngoài thì tắt menu
+  // Click ra ngoài thì tắt menu thông báo
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (notifyRef.current && !notifyRef.current.contains(event.target)) {
@@ -87,10 +92,13 @@ const Header = () => {
       <Link to="/" className="logo">🌾 AgriMarket</Link>
 
       <div className="search-box">
-        <FaSearch color="#666" />
+        {/* 👇 Thêm onClick để nhấn vào icon cũng tìm được */}
+        <FaSearch color="#666" onClick={handleSearch} style={{ cursor: 'pointer' }} />
         <input 
           type="text" 
           placeholder="Tìm kiếm rau, củ, quả..." 
+          value={searchTerm} // Gắn giá trị từ state
+          onChange={(e) => setSearchTerm(e.target.value)} // Cập nhật chữ khi gõ
           onKeyDown={handleSearch}
         />
       </div>
@@ -101,17 +109,16 @@ const Header = () => {
           <Link to="/about">Giới thiệu</Link>
           <Link to="/voucher">Ưu đãi</Link>
           <Link to="/contact">Liên hệ</Link>
-          {/* 👇 vendor LINK (visible only to vendor) */}
           {userRole === 'vendor' && <Link to="/vendor/panel" style={{ color: '#ff9800', fontWeight: 'bold' }}>⚙️ Quản lý</Link>}
         </nav>
 
-        {/* --- KHU VỰC THÔNG BÁO --- */}
+        {/* --- KHU VỰC THÔNG BÁO (GIỮ NGUYÊN) --- */}
         <div 
           className="header-action-item notification-wrapper" 
           ref={notifyRef}
           onClick={() => {
             setShowNotify(!showNotify);
-            if (!showNotify) markAllAsRead(); // Mở ra là tính đã đọc
+            if (!showNotify) markAllAsRead();
           }}
         >
           <div className="header-action-link">
@@ -123,10 +130,8 @@ const Header = () => {
           {showNotify && (
             <div className="notification-dropdown">
               <div className="notify-header">Thông báo mới</div>
-              
               <div className="notify-list">
                 {notifications.length > 0 ? (
-                  // CHỈ LẤY 5 TIN MỚI NHẤT
                   notifications.slice(0, 5).map((item) => (
                     <div key={item.id} className={`notify-item ${item.unread ? 'unread' : ''}`}>
                       <img src={item.image || "https://cdn-icons-png.flaticon.com/512/3602/3602145.png"} alt="icon" className="notify-img" />
@@ -142,7 +147,6 @@ const Header = () => {
                 )}
               </div>
 
-              {/* --- NÚT XEM TẤT CẢ (MỚI THÊM) --- */}
               <div style={{
                   borderTop: '1px solid #eee', 
                   padding: '12px', 
@@ -154,39 +158,30 @@ const Header = () => {
                   <Link 
                     to="/notifications" 
                     onClick={(e) => {
-                      e.stopPropagation(); // Ngăn chặn sự kiện click lan ra ngoài
-                      setShowNotify(false); // Đóng menu
+                      e.stopPropagation();
+                      setShowNotify(false);
                     }}
-                    style={{
-                      color: '#2e7d32', 
-                      fontWeight: 'bold', 
-                      fontSize: '13px', 
-                      textDecoration: 'none',
-                      display: 'block'
-                    }}
+                    style={{ color: '#2e7d32', fontWeight: 'bold', fontSize: '13px', textDecoration: 'none', display: 'block' }}
                   >
                     Xem tất cả thông báo &rarr;
                   </Link>
               </div>
-
             </div>
           )}
         </div>
 
-        {/* --- GIỎ HÀNG --- */}
+        {/* --- GIỎ HÀNG (GIỮ NGUYÊN) --- */}
         <div className="header-action-item" style={{ position: 'relative' }}>
            <Link to="/cart" className="header-action-link">
               <FaShoppingCart size={20} />
               <span className="action-label">Giỏ hàng</span>
               {totalItems > 0 && (
-                <span className="cart-badge">
-                  {totalItems}
-                </span>
+                <span className="cart-badge">{totalItems}</span>
               )}
            </Link>
         </div>
 
-        {/* --- TÀI KHOẢN / ĐĂNG XUẤT --- */}
+        {/* --- TÀI KHOẢN (GIỮ NGUYÊN) --- */}
         <div className="header-action-item" ref={profileMenuRef}>
            {isLoggedIn ? (
              <>
@@ -204,16 +199,13 @@ const Header = () => {
                    <div className="profile-menu-header">
                      {userName && <p className="profile-name">{userName}</p>}
                    </div>
-
                    <div className="profile-menu-items">
                      <Link to="/profile" className="profile-menu-item" onClick={() => setShowProfileMenu(false)}>
                        👤 Thông tin cá nhân
                      </Link>
-                     
                      <Link to="/orders" className="profile-menu-item" onClick={() => setShowProfileMenu(false)}>
                        🛒 Đơn hàng của tôi
                      </Link>
-
                      {userRole === 'vendor' && (
                        <>
                          <div className="profile-menu-divider"></div>
@@ -222,7 +214,6 @@ const Header = () => {
                          </Link>
                        </>
                      )}
-
                      <div className="profile-menu-divider"></div>
                      <button 
                        className="profile-menu-item logout-item"

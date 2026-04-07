@@ -97,7 +97,7 @@ const AppHeaderDropdown = () => {
         {/* ---------------------------------- */}
         
         <CDropdownItem 
-            onClick={() => navigate('/vendor/vendorprofile')} 
+            onClick={() => navigate('/admin/profile')} 
             style={{ cursor: 'pointer' }}
           className="py-2 text-body-emphasis"
         >

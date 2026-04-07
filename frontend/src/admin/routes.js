@@ -10,6 +10,8 @@ const Page404 = React.lazy(() => import('../admin/views/pages/page404/Page404'))
 const Page500 = React.lazy(() => import('../admin/views/pages/page500/Page500'))
 const Reviews = React.lazy(() => import('./views/reviews/Reviews'))
 const manage_user = React.lazy(() => import('./views/manage_user/manage'))
+// Sửa lại dòng số 9 thành như thế này:
+const ManageLogs = React.lazy(() => import('./views/logs/ManageLogs'))
 // Features
 
 const Products = React.lazy(() => import('../admin/views/products/Products'))
@@ -41,7 +43,7 @@ const routes = [
   { path: '/admin/invoice', name: 'Invoice', element: Invoice },
     { path: '/admin/manage', name: 'manage', element: manage_user },
       { path: '/admin/category', name: 'category', element: CategoryJewelry },
-
+{ path: '/admin/logs', name: 'Nhật ký hoạt động', element: ManageLogs },
 
 ]
 

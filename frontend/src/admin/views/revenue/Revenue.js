@@ -6,9 +6,9 @@ import {
 import { CChartLine } from '@coreui/react-chartjs'
 import CIcon from '@coreui/icons-react'
 import {
-  cilMoney, cilCart, cilGraph, cilList, cilStorage, cilPlus, cilArrowTop
+  cilMoney, cilCart, cilGraph, cilList, cilStorage, cilPlus, cilArrowTop, cilInfo
 } from '@coreui/icons'
-import { getAuthToken } from '../../../user/utils/authStorage.js' // Đảm bảo đường dẫn này đúng
+import { getAuthToken } from '../../../user/utils/authStorage.js' 
 import { API_BASE as API_BASE_URL } from 'src/config';
 
 const Revenue = () => {
@@ -357,6 +357,48 @@ const Revenue = () => {
         <CModalFooter>
           <CButton color="secondary" onClick={() => setImportModal(false)}>Hủy</CButton>
           <CButton color="primary" onClick={handleImportStock}>Xác nhận nhập kho</CButton>
+        </CModalFooter>
+      </CModal>
+
+      {/* MODAL CHI TIẾT KHO HÀNG (PHẦN BẠN CÒN THIẾU) */}
+      <CModal visible={inventoryModal} onClose={() => setInventoryModal(false)}>
+        <CModalHeader closeButton>
+          <CModalTitle>Thông Tin Kho: {selectedInventoryItem?.name}</CModalTitle>
+        </CModalHeader>
+        <CModalBody>
+          {selectedInventoryItem && (
+            <div className="p-3">
+              <div className="text-center mb-4">
+                <div className="stat-icon-box bg-light mx-auto mb-2">
+                  <CIcon icon={cilStorage} className="text-info" size="xl" />
+                </div>
+                <h5 className="fw-bold">{selectedInventoryItem.name}</h5>
+                <span className="text-muted small">Mã hệ thống: #{selectedInventoryItem.id}</span>
+              </div>
+              
+              <div className="bg-light p-3 rounded-3">
+                <div className="d-flex justify-content-between mb-2">
+                  <span className="text-muted">Số lượng tồn:</span>
+                  <span className="fw-bold">{selectedInventoryItem.stock} sản phẩm</span>
+                </div>
+                <div className="d-flex justify-content-between align-items-center">
+                  <span className="text-muted">Tình trạng:</span>
+                  <span className={`badge-soft text-${getStockStatus(selectedInventoryItem.stock).color}`} 
+                        style={{backgroundColor: getStockStatus(selectedInventoryItem.stock).bg}}>
+                    {getStockStatus(selectedInventoryItem.stock).label}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-4 small text-muted border-top pt-3">
+                <CIcon icon={cilInfo} className="me-1" size="sm"/> 
+                Lưu ý: Số lượng kho được cập nhật tự động khi có đơn hàng mới hoặc nhập hàng thủ công.
+              </div>
+            </div>
+          )}
+        </CModalBody>
+        <CModalFooter>
+          <CButton color="secondary" onClick={() => setInventoryModal(false)}>Đóng</CButton>
         </CModalFooter>
       </CModal>
       

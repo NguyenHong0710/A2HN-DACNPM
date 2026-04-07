@@ -76,10 +76,12 @@ export const CartProvider = ({ children }) => {
   const safeQty = normalizeQuantity(quantity);
 
   // ĐẢM BẢO mang theo trường images gốc từ API vào giỏ hàng
-  const productToSave = {
+ const productToSave = {
     ...product,
-    images: product.images // Chắc chắn giữ lại trường này
-  };
+    images: product.images,
+    // Nếu category bị null (do xóa danh mục), gán nhãn mặc định luôn
+    category: product.category || 'Chưa phân loại' 
+};
 
   setCartItems((prev) => {
     const existingItem = prev.find((item) => item.id === productToSave.id);
@@ -127,7 +129,10 @@ export const CartProvider = ({ children }) => {
   const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   // Tính tổng tiền
-  const totalPrice = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+  const totalPrice = cartItems.reduce((total, item) => {
+  const price = Number(item.price) || 0; // Đảm bảo luôn là số
+  return total + price * item.quantity;
+}, 0);
 
   return (
     <CartContext.Provider value={{ 

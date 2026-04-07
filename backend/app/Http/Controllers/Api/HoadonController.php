@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Hoadon;
-use App\Models\ChiTietHoadon; // Đảm bảo đã import model này
+use App\Models\ChiTietHoadon; 
 use Illuminate\Http\Request;
 use Exception;
 use Illuminate\Support\Facades\Log;
@@ -45,17 +45,25 @@ class HoadonController extends Controller
                 'address'         => $request->address,
                 'amount'          => $calculatedAmount, 
                 'payment_method'  => $request->payment_method,
-                
                 'deliveryStatus'  => 'pending', 
             ]);
 
-            // 3. Lưu chi tiết từng sản phẩm (SỬA Ở ĐÂY)
+            $user->update([
+                'name'    => $request->fullName, 
+                'phone'   => $request->phone,
+                'address' => $request->address,
+            ]);
+
+            // 3. Lưu chi tiết từng sản phẩm
             foreach ($request->items as $item) {
+                $rawImage = $item['images'] ?? $item['image'] ?? $item['product_image'] ?? $item['thumb'] ?? null;
+                $imagePath = is_array($rawImage) ? ($rawImage[0] ?? null) : $rawImage;
+
                 $hoadon->chiTiet()->create([
-                    'name'  => $item['name'] ?? 'Sản phẩm không tên',
-                    'qty'   => $item['qty'] ?? ($item['quantity'] ?? 1),
-                    'price' => $item['price'] ?? 0,
-                    'images' => $item['images'] ?? null, // <--- THÊM DÒNG NÀY ĐỂ LƯU VÀO DB
+                    'name'   => $item['name'] ?? 'Sản phẩm không tên',
+                    'qty'    => $item['qty'] ?? ($item['quantity'] ?? 1),
+                    'price'  => $item['price'] ?? 0,
+                    'images' => $imagePath, 
                 ]);
             }
 
@@ -107,7 +115,7 @@ class HoadonController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'data' => $this->formatInvoices($invoices) // <--- formatInvoices sẽ lấy ảnh ra cho bạn
+                'data' => $this->formatInvoices($invoices)
             ]);
         } catch (Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
@@ -115,7 +123,7 @@ class HoadonController extends Controller
     }
 
     /**
-     * Cập nhật trạng thái
+     * CẬP NHẬT TRẠNG THÁI (Đã tích hợp logic Xác nhận & Vận chuyển)
      */
     public function update(Request $request)
     {
@@ -124,20 +132,25 @@ class HoadonController extends Controller
             $hoadon = Hoadon::find($request->id);
             if (!$hoadon) return response()->json(['status' => 'error', 'message' => 'Không tìm thấy'], 404);
 
+            // Cập nhật trạng thái hóa đơn
             $hoadon->update(['deliveryStatus' => $request->status]);
+
+            // Xác định trạng thái vận chuyển tương ứng
+            // Nếu là 'Đã xác nhận' thì bên vận chuyển là 'Chờ lấy hàng', các trạng thái khác giữ nguyên theo request
+            $shippingStatus = ($request->status === 'Đã xác nhận') ? 'Chờ lấy hàng' : $request->status;
 
             $shipping = Shipping::where('orderId', $hoadon->id)->first();
             if ($shipping) {
-                $shipping->update(['status' => $request->status]);
+                $shipping->update(['status' => $shippingStatus]);
             } else {
                 Shipping::create([
-                    'id'           => 'SHIP-' . $hoadon->id . '-' . time(), 
-                    'orderId'      => $hoadon->id,
-                    'customer'     => $hoadon->customer,
-                    'phone'        => $hoadon->phone,
-                    'address'      => $hoadon->address,
-                    'status'       => $request->status,
-                    'method'       => 'Giao hàng tiêu chuẩn',
+                    'id'            => 'SHIP-' . $hoadon->id . '-' . time(), 
+                    'orderId'       => $hoadon->id,
+                    'customer'      => $hoadon->customer,
+                    'phone'         => $hoadon->phone,
+                    'address'       => $hoadon->address,
+                    'status'        => $shippingStatus,
+                    'method'        => 'Giao hàng tiêu chuẩn',
                     'estimatedTime' => now()->addDays(3), 
                 ]);
             }
@@ -169,7 +182,7 @@ class HoadonController extends Controller
     }
 
     /**
-     * Format dữ liệu trả về cho Frontend (SỬA Ở ĐÂY)
+     * Format dữ liệu trả về cho Frontend
      */
     private function formatInvoices($invoices)
     {
@@ -188,7 +201,7 @@ class HoadonController extends Controller
                         'name'  => $item->name,
                         'qty'   => $item->qty,
                         'price' => (float)$item->price,
-                       'image' => $item->images,
+                        'image' => $item->images, 
                     ];
                 }) : []
             ];

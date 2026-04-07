@@ -1,18 +1,71 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../store/CartContext';
 import { FiTrash2, FiMinus, FiPlus, FiArrowLeft, FiShield } from 'react-icons/fi';
 import './Cart.css';
 
 const Cart = () => {
-  const { cartItems, removeFromCart, updateQuantity, totalPrice } = useCart();
+  const { cartItems, removeFromCart, updateQuantity } = useCart();
+  const navigate = useNavigate();
 
-  // --- 1. COPY LOGIC XỬ LÝ ẢNH TỪ TRANG HOME ---
+  // --- State quản lý các sản phẩm được chọn (Mặc định là mảng rỗng []) ---
+  const [selectedItemIds, setSelectedItemIds] = useState([]);
+
+  // BỎ ĐOẠN USEEFFECT TỰ ĐỘNG TICK CHỌN TẤT CẢ Ở ĐÂY
+
+  // Đảm bảo khi xóa 1 sản phẩm khỏi giỏ, nó cũng bị xóa khỏi danh sách đã tick
+  useEffect(() => {
+    setSelectedItemIds(prev => prev.filter(id => cartItems.some(item => item.id === id)));
+  }, [cartItems]);
+
+  // Hàm xử lý khi tick/bỏ tick 1 sản phẩm
+  const handleToggleSelect = (id) => {
+    setSelectedItemIds(prev => 
+      prev.includes(id) 
+        ? prev.filter(itemId => itemId !== id) 
+        : [...prev, id]
+    );
+  };
+
+  // Hàm xử lý chọn/bỏ chọn tất cả
+  const handleSelectAll = () => {
+    if (selectedItemIds.length === cartItems.length) {
+      setSelectedItemIds([]); // Nếu đang chọn hết -> Bỏ chọn tất cả
+    } else {
+      setSelectedItemIds(cartItems.map(item => item.id)); // Nếu chưa chọn hết -> Chọn tất cả
+    }
+  };
+
+  // Tính tổng tiền CHỈ cho các sản phẩm ĐƯỢC TICK CHỌN
+  const selectedTotalPrice = cartItems
+    .filter(item => selectedItemIds.includes(item.id))
+    .reduce((total, item) => total + (item.price * item.quantity), 0);
+
+  // Xử lý khi bấm nút "Tiến hành thanh toán"
+  const handleCheckoutClick = (e) => {
+    e.preventDefault(); 
+    
+    if (selectedItemIds.length === 0) {
+      alert("Vui lòng tick chọn ít nhất 1 sản phẩm để thanh toán!");
+      return;
+    }
+
+    // Lọc ra data đầy đủ của các sản phẩm được tick
+    const itemsToCheckout = cartItems.filter(item => selectedItemIds.includes(item.id));
+
+    // Lưu vào localStorage để trang Checkout có thể lấy ra sử dụng
+    localStorage.setItem('checkoutItems', JSON.stringify(itemsToCheckout));
+
+    // Chuyển hướng sang trang checkout
+    navigate('/checkout', { state: { selectedItems: itemsToCheckout } });
+  };
+  // -------------------------------------------------------
+
+  // --- COPY LOGIC XỬ LÝ ẢNH TỪ TRANG HOME ---
   const getImageUrl = (images) => {
     if (!images) return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
 
     try {
-      // Nếu images đã là object/array từ Context thì dùng luôn, nếu là string thì parse
       const parsed = typeof images === 'string' ? JSON.parse(images) : images;
       
       if (Array.isArray(parsed) && parsed.length > 0) {
@@ -21,7 +74,6 @@ const Cart = () => {
           ? firstImage 
           : `http://127.0.0.1:8000/storage/${firstImage}`;
       }
-      // Trường hợp là string đơn lẻ (tên file)
       if (typeof parsed === 'string') {
           return parsed.startsWith('http') ? parsed : `http://127.0.0.1:8000/storage/${parsed}`;
       }
@@ -60,14 +112,35 @@ const Cart = () => {
 
       <div className="cart-content-wrapper" style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
         <div className="cart-items-section" style={{ flex: '2', minWidth: '350px' }}>
+          
+          {/* Nút Chọn tất cả */}
+          <div style={{ paddingBottom: '15px', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <input 
+              type="checkbox" 
+              checked={cartItems.length > 0 && selectedItemIds.length === cartItems.length}
+              onChange={handleSelectAll}
+              // Giữ màu đỏ cho nút chọn tất cả
+              style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'red' }} 
+            />
+            <span style={{ fontWeight: '500' }}>Chọn tất cả ({cartItems.length} sản phẩm)</span>
+          </div>
+
           <div className="cart-items-list">
             {cartItems.map((item) => (
               <div key={item.id} className="cart-item-card" style={{ 
                 display: 'flex', alignItems: 'center', padding: '20px 0', borderBottom: '1px solid #f5f5f5' 
               }}>
+                
+                {/* --- ĐÃ THÊM MÀU ĐỎ CHO Ô TICK CHỌN TỪNG SẢN PHẨM --- */}
+                <input 
+                  type="checkbox"
+                  checked={selectedItemIds.includes(item.id)}
+                  onChange={() => handleToggleSelect(item.id)}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer', marginRight: '15px', accentColor: 'red' }}
+                />
+
                 <div className="item-image-wrapper" style={{ width: '100px', height: '100px', overflow: 'hidden' }}>
                   <Link to={`/product/${item.id}`}>
-                    {/* --- 2. THAY ĐỔI Ở ĐÂY: Dùng getImageUrl thay vì item.image --- */}
                     <img 
                       src={getImageUrl(item.images || item.image)} 
                       alt={item.name} 
@@ -87,16 +160,18 @@ const Cart = () => {
                 </div>
 
                 <div className="item-quantity-control" style={{ display: 'flex', alignItems: 'center', border: '1px solid #eee' }}>
+                  {/* --- ĐÃ THÊM MÀU ĐỎ CHO NÚT TRỪ --- */}
                   <button 
-                    style={{ padding: '8px', border: 'none', background: 'none', cursor: 'pointer' }}
+                    style={{ padding: '8px', border: 'none', background: 'none', cursor: 'pointer', color: 'red' }}
                     onClick={() => updateQuantity(item.id, item.quantity - 1)}
                     disabled={item.quantity <= 1}
                   >
                     <FiMinus size={12} />
                   </button>
                   <span style={{ padding: '0 10px', fontSize: '14px' }}>{item.quantity}</span>
+                  {/* --- ĐÃ THÊM MÀU ĐỎ CHO NÚT CỘNG --- */}
                   <button 
-                    style={{ padding: '8px', border: 'none', background: 'none', cursor: 'pointer' }}
+                    style={{ padding: '8px', border: 'none', background: 'none', cursor: 'pointer', color: 'red' }}
                     onClick={() => updateQuantity(item.id, item.quantity + 1)}
                   >
                     <FiPlus size={12} />
@@ -107,8 +182,9 @@ const Cart = () => {
                   {new Intl.NumberFormat('vi-VN').format(item.price * item.quantity)}đ
                 </div>
 
+                {/* --- ĐÃ THÊM MÀU ĐỎ CHO NÚT XÓA --- */}
                 <button 
-                  style={{ marginLeft: '20px', border: 'none', background: 'none', color: '#ccc', cursor: 'pointer' }}
+                  style={{ marginLeft: '20px', border: 'none', background: 'none', color: 'red', cursor: 'pointer' }}
                   onClick={() => removeFromCart(item.id)}
                 >
                   <FiTrash2 size={18} />
@@ -129,8 +205,8 @@ const Cart = () => {
             <h3 style={{ fontFamily: 'Playfair Display, serif', marginBottom: '20px' }}>Thông tin đơn hàng</h3>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', color: '#666' }}>
-              <span>Tạm tính</span>
-              <span>{new Intl.NumberFormat('vi-VN').format(totalPrice)}đ</span>
+              <span>Tạm tính ({selectedItemIds.length} món)</span>
+              <span>{new Intl.NumberFormat('vi-VN').format(selectedTotalPrice)}đ</span>
             </div>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', color: '#666' }}>
@@ -143,13 +219,30 @@ const Cart = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px' }}>
               <span style={{ fontWeight: 'bold' }}>Tổng cộng</span>
               <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#111' }}>
-                {new Intl.NumberFormat('vi-VN').format(totalPrice)}đ
+                {new Intl.NumberFormat('vi-VN').format(selectedTotalPrice)}đ
               </span>
             </div>
             
-           <Link to="/checkout" className="btn-checkout">
+            <button 
+              onClick={handleCheckoutClick} 
+              className="btn-checkout"
+              style={{
+                width: '100%',
+                padding: '15px',
+                backgroundColor: selectedItemIds.length > 0 ? '#111' : '#ccc',
+                color: selectedItemIds.length > 0 ? '#c5a059' : '#666',
+                border: 'none',
+                cursor: selectedItemIds.length > 0 ? 'pointer' : 'not-allowed',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                display: 'block',
+                textAlign: 'center',
+                textDecoration: 'none'
+              }}
+              disabled={selectedItemIds.length === 0}
+            >
               Tiến hành thanh toán
-            </Link>
+            </button>
             
             <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center', color: '#999', fontSize: '13px' }}>
               <FiShield />

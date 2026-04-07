@@ -141,7 +141,17 @@
   height: 100%;
   background: transparent;
 }
+/* Đổi màu đỏ cho nút cộng, trừ và thùng rác trong giỏ hàng */
+.item-quantity-control button,
+.cart-item-card > button:last-child {
+  color: red !important;
+}
 
+/* Tùy chọn: Làm mờ nút trừ khi bị disable (số lượng = 1) */
+.item-quantity-control button:disabled {
+  color: #ffcccc !important; /* Màu đỏ nhạt */
+  cursor: not-allowed;
+}
 .qty-value::-webkit-outer-spin-button,
 .qty-value::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -417,4 +427,5 @@ body:not(.vendor-mode):not(.vendor-mode) .btn-continue-shopping:hover {
   .empty-cart-img {
     width: 120px;
   }
+  
 }

@@ -52,7 +52,7 @@ const Home = () => {
     },
     {
       url: "https://images.unsplash.com/photo-1605100804763-247f67b6348e?auto=format&fit=crop&w=1920&q=80",
-      title: "Bộ Sưu Tập Nhẫn Cưới",
+      title: "Bộ Sưu Tập Mới Nhất - Ánh Sáng Vĩnh Cửu",
       subtitle: "Minh chứng rực rỡ cho tình yêu vĩnh cửu theo dòng thời gian."
     }
   ];

@@ -132,10 +132,44 @@ const Profile = () => {
     }
   };
 
-  const handleLogout = () => {
-    clearAuthSession();
-    navigate('/login');
+  // ... các đoạn code cũ giữ nguyên
+
+  const handleLogout = async () => {
+    // Hiển thị hộp thoại xác nhận phong cách quý tộc
+    const confirmLogout = window.confirm("Lumina Jewelry: Quý khách có chắc chắn muốn đăng xuất");
+    
+    if (!confirmLogout) return;
+
+    try {
+      const authToken = getAuthToken();
+      
+      // 1. (Tùy chọn) Gọi API Logout để Laravel hủy Token (Blacklist)
+      // Điều này giúp bảo mật hơn vì token cũ sẽ không dùng được nữa
+      if (authToken) {
+        await fetch(`${API_BASE_URL}/logout`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      }
+    } catch (err) {
+      console.error("Lỗi khi gọi API Logout:", err);
+      // Vẫn tiếp tục các bước dưới kể cả khi API lỗi để người dùng thoát được giao diện
+    } finally {
+      // 2. Xóa sạch dữ liệu trong localStorage/session thông qua hàm tiện ích bạn đã import
+      clearAuthSession();
+
+      // 3. Thông báo cho người dùng
+      alert('Hẹn gặp lại Quý khách tại Lumina Jewelry!');
+
+      // 4. Điều hướng về trang chủ hoặc trang đăng nhập
+      // Sử dụng window.location thay vì navigate nếu bạn muốn reset hoàn toàn state của React
+      window.location.href = '/login'; 
+    }
   };
+
 
   if (loading) return <div className="loading-screen">Đang khởi tạo không gian riêng của Quý khách...</div>;
   if (error) return <div className="error-screen">{error}</div>;
@@ -145,21 +179,26 @@ const Profile = () => {
       <div className="profile-container">
         <div className="profile-sidebar">
           <div className="user-avatar-section">
-            <div className="avatar-frame">
-              <img src={avatarPreview || user?.avatar} alt="Lumina Member" className="avatar-img" />
-              {isEditing && (
-                <div className="avatar-overlay" onClick={() => avatarInputRef.current.click()}>
-                  <FaUserEdit />
-                </div>
-              )}
-              <input 
-                type="file" 
-                ref={avatarInputRef} 
-                style={{ display: 'none' }} 
-                accept="image/*"
-                onChange={handleFileChange}
-              />
-            </div>
+            {/* --- CODE MỚI --- */}
+<div className="avatar-frame luxury-avatar-frame">
+  <img src={avatarPreview || user?.avatar} alt="Lumina Member" className="avatar-img" />
+  
+  {/* Đưa nút đổi ảnh ra ngoài khung, dùng label để click vào input file */}
+  {isEditing && (
+    <label htmlFor="avatar-upload-input" className="avatar-edit-badge">
+      <FaUserEdit />
+    </label>
+  )}
+
+  <input 
+    type="file" 
+    id="avatar-upload-input" /* Thêm ID để label trỏ tới */
+    ref={avatarInputRef} 
+    style={{ display: 'none' }} 
+    accept="image/*"
+    onChange={handleFileChange}
+  />
+</div>
             <h3 className="user-display-name">{user?.name}</h3>
             <span className="membership-tier">Thành viên Lumina Privé</span>
           </div>
@@ -240,11 +279,12 @@ const Profile = () => {
               </div>
 
               {isEditing && (
-                <div className="action-footer">
-                  <button className="gold-solid-btn" onClick={handleSave}>Lưu thay đổi</button>
-                  <button className="cancel-btn" onClick={() => { setIsEditing(false); setAvatarPreview(null); }}>Hủy</button>
-                </div>
-              )}
+  <div className="luxury-profile-actions">
+    {/* Nút Hủy trước (thông thường Hủy bên trái, Lưu bên phải) */}
+    <button className="luxury-profile-btn btn-cancel-luxury" onClick={() => setIsEditing(false)}>Hủy</button>
+    <button className="luxury-profile-btn btn-save-luxury">Lưu thay đổi</button>
+  </div>
+)}
             </div>
           )}
 

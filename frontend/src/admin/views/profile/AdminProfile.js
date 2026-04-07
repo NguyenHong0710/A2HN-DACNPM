@@ -6,11 +6,18 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import {
-  cilPencil, cilSave, cilCloudUpload, cilCloudDownload
+  cilPencil, cilSave, cilCloudUpload, cilUser, cilMap, cilPhone, cilEnvelopeOpen, cilCalendar, cilArrowLeft
 } from '@coreui/icons'
 
-// URL tới Laravel Backend
 const API_BASE_URL = "http://127.0.0.1:8000/api";
+
+const formatPhoneNumber = (phone) => {
+  if (!phone || phone === 'Chưa có') return 'Chưa cập nhật';
+  const cleaned = ('' + phone).replace(/\D/g, '');
+  const match = cleaned.match(/^(\d{4})(\d{3})(\d{3})$/);
+  if (match) return `${match[1]}.${match[2]}.${match[3]}`;
+  return phone;
+};
 
 const AdminProfile = () => {
   const [admin, setAdmin] = useState({
@@ -30,7 +37,6 @@ const AdminProfile = () => {
     fetchProfile();
   }, []);
 
-  // 1. LẤY DỮ LIỆU (Khớp với Route: Route::get('/profile', ...))
   const fetchProfile = async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/profile`, {
@@ -50,7 +56,6 @@ const AdminProfile = () => {
           joinDate: u.created_at || ''
         });
         
-        // Xử lý hiển thị ảnh: Nếu có avatar từ server thì nối URL, không thì dùng placeholder
         if (u.avatar) {
             setPreviewAvatar(u.avatar.startsWith('http') ? u.avatar : `http://127.0.0.1:8000/storage/${u.avatar}`);
         } else {
@@ -59,18 +64,25 @@ const AdminProfile = () => {
       }
     } catch (error) {
       console.error("Lỗi tải profile:", error);
-      if (error.response?.status === 401) alert("Phiên đăng nhập hết hạn!");
     } finally {
       setLoading(false);
     }
   }
 
-  const handleEditMode = () => { setBackupData({ ...admin }); setIsEditing(true); }
+  const handleEditMode = () => { 
+    setBackupData({ ...admin }); 
+    setIsEditing(true); 
+  }
   
   const handleCancel = () => { 
     setAdmin(backupData); 
     setIsEditing(false); 
     setSelectedFile(null);
+    if (backupData.avatar) {
+      setPreviewAvatar(backupData.avatar.startsWith('http') ? backupData.avatar : `http://127.0.0.1:8000/storage/${backupData.avatar}`);
+    } else {
+      setPreviewAvatar('https://via.placeholder.com/150');
+    }
   }
 
   const handleChange = (e) => {
@@ -81,26 +93,32 @@ const AdminProfile = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0]
     if (file) {
+      // Logic cho phép "đuôi ảnh gì cũng được"
       setPreviewAvatar(URL.createObjectURL(file))
       setSelectedFile(file)
     }
   }
 
-  // 2. LƯU DỮ LIỆU (Khớp với Route: Route::put('/profile', ...) và Route::post('/profile/avatar', ...))
   const handleSave = async () => {
+    const cleanPhone = admin.phone ? admin.phone.toString().replace(/\D/g, '') : '';
+    const phoneRegex = /^0\d{9}$/;
+    
+    if (cleanPhone !== '' && !phoneRegex.test(cleanPhone)) {
+      alert('Số điện thoại không hợp lệ!');
+      return;
+    }
+
     setLoading(true);
     try {
-      // BƯỚC A: Cập nhật thông tin (Dùng PUT theo api.php của bạn)
       await axios.put(`${API_BASE_URL}/profile`, {
         name: admin.name,
-        phone: admin.phone,
+        phone: cleanPhone, 
         address: admin.address,
         bio: admin.bio
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      // BƯỚC B: Cập nhật Avatar nếu có chọn file mới
       if (selectedFile) {
         const imgData = new FormData();
         imgData.append('avatar', selectedFile);
@@ -112,108 +130,126 @@ const AdminProfile = () => {
         });
       }
 
-      alert('Cập nhật hồ sơ Admin thành công!');
+      alert('Cập nhật thành công!');
       setIsEditing(false);
-      fetchProfile(); // Reload dữ liệu
+      setSelectedFile(null);
+      fetchProfile();
     } catch (error) {
-      const msg = error.response?.data?.message || 'Không thể kết nối server';
-      alert('Lỗi cập nhật: ' + msg);
+      alert('Lỗi cập nhật: ' + (error.response?.data?.message || 'Lỗi kết nối'));
     } finally {
       setLoading(false);
     }
   }
 
-  if (loading) return <div className="text-center py-5"><CSpinner color="primary"/></div>;
+  if (loading) return <div className="text-center py-5"><CSpinner style={{color: '#D99485'}}/></div>;
 
   return (
-    <div className="profile-container pb-5">
+    <div className="profile-page py-4" style={{backgroundColor: '#f8f9fa', minHeight: '100vh'}}>
       <style>{`
-        .glass-card { border: none; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); background: #ffffff; overflow: hidden; }
-        .profile-header-bg { height: 100px; background: linear-gradient(135deg, #4f46e5 0%, #312e81 100%); }
-        .avatar-wrapper { margin-top: -50px; position: relative; display: inline-block; }
-        .avatar-main-img { width: 120px; height: 120px; object-fit: cover; border-radius: 50%; border: 4px solid #ffffff; box-shadow: 0 5px 15px rgba(0,0,0,0.1); background: #f8f9fa; }
-        .upload-badge { position: absolute; bottom: 5px; right: 5px; background: #4f46e5; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid #ffffff; }
-        .input-modern { border-radius: 12px; padding: 12px 16px; border: 1px solid #e5e7eb; background-color: #fdfdfd; }
-        .input-modern:focus { border-color: #4f46e5; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); background-color: #ffffff; }
-        .btn-action-main { border-radius: 10px; font-weight: 700; padding: 8px 20px; }
+        .glass-card { border: none; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); background: #ffffff; }
+        .header-gradient { height: 140px; background: linear-gradient(135deg, #D99485 0%, #b57a6d 100%); border-radius: 20px 20px 0 0; }
+        .avatar-container { margin-top: -70px; position: relative; z-index: 2; }
+        .avatar-img { width: 140px; height: 140px; object-fit: cover; border-radius: 25px; border: 6px solid #ffffff; box-shadow: 0 8px 20px rgba(0,0,0,0.1); background: #fff; }
+        .upload-btn-overlay { position: absolute; bottom: 8px; right: -8px; background: #D99485; color: white; width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 3px solid #ffffff; transition: 0.3s; }
+        .upload-btn-overlay:hover { transform: scale(1.1); background: #c57f71; }
+        .info-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #8a8a8a; font-weight: 700; margin-bottom: 8px; display: block; }
+        .input-luxury { border-radius: 12px; padding: 12px 18px; border: 1px solid #eee; transition: 0.3s; background: #fafafa; }
+        .input-luxury:focus { border-color: #D99485; box-shadow: 0 0 0 4px rgba(217, 148, 133, 0.1); background: #fff; }
+        .btn-luxury { border-radius: 12px; font-weight: 600; padding: 10px 24px; transition: 0.3s; }
+        .btn-save { background: #D99485; border: none; color: white; }
+        .btn-save:hover { background: #c57f71; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(217, 148, 133, 0.3); }
+        .side-info-box { background: #fff9f8; border-radius: 15px; padding: 20px; border: 1px solid #f2e4e1; }
       `}</style>
 
       <CRow className="justify-content-center">
-        <CCol lg={4} className="mb-4">
-          <CCard className="glass-card">
-            <div className="profile-header-bg"></div>
-            <CCardBody className="text-center pt-0 pb-4">
-              <div className="avatar-wrapper mb-3">
-                <img src={previewAvatar} alt="Avatar" className="avatar-main-img" />
+        {/* CỘT BÊN TRÁI - AVATAR */}
+        <CCol lg={4}>
+          <CCard className="glass-card text-center mb-4">
+            <div className="header-gradient"></div>
+            <CCardBody className="pt-0">
+              <div className="avatar-container mb-3 d-inline-block">
+                <img src={previewAvatar} alt="Admin" className="avatar-img" />
                 {isEditing && (
-                  <label htmlFor="avatar-upload" className="upload-badge">
+                  <label htmlFor="avatar-upload" className="upload-btn-overlay">
                     <CIcon icon={cilCloudUpload} size="sm" />
-                    <input type="file" id="avatar-upload" hidden accept="image/*" onChange={handleImageChange}/>
+                    {/* accept="" để cho phép mọi loại file */}
+                    <input type="file" id="avatar-upload" hidden onChange={handleImageChange}/>
                   </label>
                 )}
               </div>
-              <h4 className="fw-bold text-dark mb-1">{admin.name}</h4>
-              <CBadge color="primary" className="mb-3 px-3 py-2">Quản trị viên cấp cao</CBadge>
+              <h4 className="fw-bold text-dark mt-2 mb-1">{admin.name}</h4>
+              <p className="text-muted small mb-3">{admin.email}</p>
+              <CBadge style={{backgroundColor: '#D99485'}} className="px-3 py-2 rounded-pill mb-4">Hệ Thống Quản Trị</CBadge>
 
-              <div className="text-start px-3 py-3 rounded-4 bg-light mx-2">
-                <div className="d-flex justify-content-between mb-2 small">
-                  <span className="text-muted">Mã quản trị:</span>
-                  <span className="fw-bold text-dark">UID-{admin.id}</span>
+              <div className="side-info-box text-start">
+                <div className="d-flex align-items-center mb-3">
+                    <div className="p-2 rounded-3 bg-white me-3 shadow-sm"><CIcon icon={cilUser} className="text-muted"/></div>
+                    <div><span className="info-label mb-0">ID Nhân viên</span><div className="fw-bold">UID-{admin.id}</div></div>
                 </div>
-                <div className="d-flex justify-content-between small">
-                  <span className="text-muted">Ngày gia nhập:</span>
-                  <span className="fw-medium text-dark">{admin.joinDate ? new Date(admin.joinDate).toLocaleDateString('vi-VN') : '---'}</span>
+                <div className="d-flex align-items-center">
+                    <div className="p-2 rounded-3 bg-white me-3 shadow-sm"><CIcon icon={cilCalendar} className="text-muted"/></div>
+                    <div><span className="info-label mb-0">Ngày gia nhập</span><div className="fw-bold">{admin.joinDate ? new Date(admin.joinDate).toLocaleDateString('vi-VN') : '---'}</div></div>
                 </div>
               </div>
             </CCardBody>
           </CCard>
         </CCol>
 
-        <CCol lg={8} className="mb-4">
-          <CCard className="glass-card h-100">
+        {/* CỘT BÊN PHẢI - FORM */}
+        <CCol lg={7}>
+          <CCard className="glass-card">
             <CCardHeader className="bg-white border-0 p-4 d-flex justify-content-between align-items-center">
-              <h5 className="mb-0 fw-bold text-dark">Thông tin cá nhân Admin</h5>
-              <div className="d-flex gap-2">
-                {!isEditing ? (
-                  <CButton color="info" className="btn-action-main text-white shadow-sm" onClick={handleEditMode}>
-                    <CIcon icon={cilPencil} className="me-2" /> Chỉnh sửa hồ sơ
+              <h5 className="mb-0 fw-bold"><CIcon icon={cilUser} className="me-2 text-muted"/>Hồ sơ chi tiết</h5>
+              {!isEditing ? (
+                <CButton className="btn-luxury btn-save" onClick={handleEditMode}>
+                  <CIcon icon={cilPencil} className="me-2" /> Chỉnh sửa
+                </CButton>
+              ) : (
+                <div className="d-flex gap-2">
+                  <CButton color="light" className="btn-luxury border" onClick={handleCancel}>Hủy</CButton>
+                  <CButton className="btn-luxury btn-save" onClick={handleSave}>
+                    <CIcon icon={cilSave} className="me-2" /> Lưu hồ sơ
                   </CButton>
-                ) : (
-                  <>
-                    <CButton color="light" className="btn-action-main border" onClick={handleCancel}>Hủy bỏ</CButton>
-                    <CButton color="primary" className="btn-action-main text-white shadow-sm" onClick={handleSave}>
-                      <CIcon icon={cilSave} className="me-2" /> Lưu cập nhật
-                    </CButton>
-                  </>
-                )}
-              </div>
+                </div>
+              )}
             </CCardHeader>
-
             <CCardBody className="p-4 pt-0">
               <CRow className="g-4">
                 <CCol md={6}>
-                  <CFormLabel className="fw-bold small text-secondary mb-2">Họ và tên</CFormLabel>
-                  <CFormInput name="name" value={admin.name} onChange={handleChange} disabled={!isEditing} className="input-modern" />
+                  <span className="info-label">Họ và tên</span>
+                  <CFormInput name="name" value={admin.name} onChange={handleChange} disabled={!isEditing} className="input-luxury" />
                 </CCol>
                 
                 <CCol md={6}>
-                  <CFormLabel className="fw-bold small text-secondary mb-2">Số điện thoại</CFormLabel>
-                  <CFormInput name="phone" value={admin.phone} onChange={handleChange} disabled={!isEditing} className="input-modern" />
+                  <span className="info-label">Số điện thoại</span>
+                  <CFormInput 
+                    name="phone" 
+                    value={isEditing ? admin.phone : formatPhoneNumber(admin.phone)} 
+                    onChange={handleChange} 
+                    disabled={!isEditing} 
+                    className="input-luxury" 
+                    placeholder="VD: 0912..."
+                  />
                 </CCol>
 
                 <CCol md={12}>
-                  <CFormLabel className="fw-bold small text-secondary mb-2">Email đăng nhập (Cố định)</CFormLabel>
-                  <CFormInput value={admin.email} disabled className="input-modern bg-light" />
+                  <span className="info-label">Địa chỉ làm việc</span>
+                  <div className="position-relative">
+                    <CFormInput name="address" value={admin.address} onChange={handleChange} disabled={!isEditing} className="input-luxury" />
+                    <CIcon icon={cilMap} className="position-absolute end-0 top-50 translate-middle-y me-3 text-muted opacity-50" />
+                  </div>
                 </CCol>
 
                 <CCol xs={12}>
-                  <CFormLabel className="fw-bold small text-secondary mb-2">Địa chỉ văn phòng</CFormLabel>
-                  <CFormInput name="address" value={admin.address} onChange={handleChange} disabled={!isEditing} className="input-modern" />
+                  <span className="info-label">Tiểu sử & Giới thiệu</span>
+                  <CFormTextarea name="bio" rows={4} value={admin.bio} onChange={handleChange} disabled={!isEditing} className="input-luxury h-auto" placeholder="Nhập giới thiệu về bạn..." />
                 </CCol>
 
-                <CCol xs={12}>
-                  <CFormLabel className="fw-bold small text-secondary mb-2">Giới thiệu ngắn (Bio)</CFormLabel>
-                  <CFormTextarea name="bio" rows={3} value={admin.bio} onChange={handleChange} disabled={!isEditing} className="input-modern" placeholder="Chia sẻ đôi chút về vai trò của bạn..." />
+                <CCol md={12}>
+                  <div className="p-3 rounded-4 bg-light border-start border-4" style={{borderColor: '#D99485'}}>
+                    <span className="info-label">Quyền hạn tài khoản</span>
+                    <p className="mb-0 small text-dark">Bạn đang đăng nhập với tư cách <strong>Administrator</strong>. Mọi thay đổi sẽ được ghi lại trong lịch sử hệ thống.</p>
+                  </div>
                 </CCol>
               </CRow>
             </CCardBody>

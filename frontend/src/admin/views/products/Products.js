@@ -131,7 +131,8 @@ useEffect(() => {
 
       try {
           // GỌI ĐẾN ROUTE: POST /api/products/{id}/stock
-          const res = await fetch(`${API_BASE_URL}/products/${productToImport.id}/stock`, {
+          // Sửa từ /stock thành /add-stock cho khớp với Backend
+const res = await fetch(`${API_BASE_URL}/products/${productToImport.id}/add-stock`, {
               method: 'POST',
               headers: { 
                   'Content-Type': 'application/json',
@@ -275,8 +276,8 @@ useEffect(() => {
    } else {
      setEditingProduct(null);
      setFormData({ 
-       name: '', category: 'Rau Củ', price: '', stock: '', 
-       unit: 'kg', origin: '', description: '', status: 'Còn hàng', 
+       name: '', category: '', price: '', stock: '', 
+       unit: 'Cái', origin: '', description: '', status: 'Còn hàng', 
        images: [] 
      });
    }
@@ -305,10 +306,15 @@ useEffect(() => {
     }
   }
 
-  const filteredProducts = products.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = products.filter(item => {
+  const nameMatch = item.name?.toLowerCase().includes(searchTerm.toLowerCase());
+  
+  // Xử lý an toàn cho category: nếu null thì thay bằng "Chưa phân loại"
+  const categoryName = item.category || "Chưa phân loại";
+  const categoryMatch = categoryName.toLowerCase().includes(searchTerm.toLowerCase());
+  
+  return nameMatch || categoryMatch;
+});
 
   return (
     <div className="product-page-container">
@@ -614,7 +620,9 @@ useEffect(() => {
                                 </div>
                               </div>
                             </CTableDataCell>
-                            <CTableDataCell>{item.category}</CTableDataCell>
+                            <CTableDataCell>
+                            {item.category || <CBadge color="secondary">Chưa phân loại</CBadge>}
+                          </CTableDataCell>
                             <CTableDataCell>{item.origin}</CTableDataCell>
                             <CTableDataCell><span className="text-price">{formatCurrency(item.price)}</span> / {item.unit}</CTableDataCell>
                             <CTableDataCell className="fw-bold">{item.stock}</CTableDataCell>

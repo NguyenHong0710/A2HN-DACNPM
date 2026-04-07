@@ -27,7 +27,6 @@ const Shipping = () => {
     note: ''
   })
 
-  // --- 1. LẤY DỮ LIỆU (Sửa URL khớp với api.php) ---
   const fetchShipments = async () => {
     setLoading(true);
     const token = localStorage.getItem('token');
@@ -54,7 +53,6 @@ const Shipping = () => {
     fetchShipments();
   }, []);
 
-  // --- 2. CẬP NHẬT TRẠNG THÁI NHANH (Sửa logic gửi ID) ---
   const handleUpdateStatusQuick = async (id, newStatus) => {
     const token = localStorage.getItem('token');
     try {
@@ -65,7 +63,6 @@ const Shipping = () => {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json'
         },
-        // Phải gửi 'id' để Controller find() được
         body: JSON.stringify({ id: id, status: newStatus }) 
       });
       const result = await res.json();
@@ -78,7 +75,6 @@ const Shipping = () => {
     }
   };
 
-  // --- 3. LƯU TỪ MODAL ---
   const handleSave = async () => {
     if (!editingShipment) return;
     const token = localStorage.getItem('token');
@@ -134,9 +130,10 @@ const Shipping = () => {
     setTimeout(() => { handlePrint(); }, 500);
   };
 
+  // Cập nhật màu sắc khớp với text thực tế
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Giao thành công': return 'success'
+      case 'Đã giao': case 'Giao thành công': return 'success'
       case 'Đang giao': return 'warning'
       case 'Chờ lấy hàng': return 'info'
       case 'Giao thất bại': return 'danger'
@@ -189,6 +186,7 @@ const Shipping = () => {
                   <CTableDataCell className="small">{formatDateTime(item.estimatedTime)}</CTableDataCell>
                   <CTableDataCell className="text-end">
                     <div className="d-flex justify-content-end gap-2">
+                        {/* SỬA LẠI VALUE CÁC OPTION ĐỂ KHỚP VỚI DATABASE */}
                         <select 
                             className="form-select form-select-sm w-auto"
                             value={item.status}
@@ -196,7 +194,7 @@ const Shipping = () => {
                         >
                             <option value="Chờ lấy hàng">Chờ lấy hàng</option>
                             <option value="Đang giao">Đang giao</option>
-                            <option value="Giao thành công">Giao thành công</option>
+                            <option value="Đã giao">Đã giao</option>
                             <option value="Giao thất bại">Giao thất bại</option>
                         </select>
                         <CButton color="light" size="sm" onClick={() => openEditModal(item)}><CIcon icon={cilPencil}/></CButton>
@@ -210,7 +208,7 @@ const Shipping = () => {
         </CCardBody>
       </CCard>
 
-      {/* MODAL CẬP NHẬT */}
+      {/* MODAL CẬP NHẬT - CŨNG CẦN KHỚP OPTION */}
       <CModal visible={modalVisible} onClose={() => setModalVisible(false)} alignment="center">
         <CModalHeader><CModalTitle>Cập Nhật Vận Đơn</CModalTitle></CModalHeader>
         <CModalBody>
@@ -227,7 +225,7 @@ const Shipping = () => {
             <CFormSelect value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
               <option value="Chờ lấy hàng">Chờ lấy hàng</option>
               <option value="Đang giao">Đang giao</option>
-              <option value="Giao thành công">Giao thành công</option>
+              <option value="Đã giao">Đã giao</option>
               <option value="Giao thất bại">Giao thất bại</option>
             </CFormSelect>
           </div>

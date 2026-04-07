@@ -68,9 +68,13 @@ const ProductDetail = () => {
 
         if (mainProduct && Array.isArray(allProducts)) {
           const related = allProducts
-            .filter(p => p.category === mainProduct.category && p.id !== mainProduct.id)
-            .slice(0, 4);
-          setRelatedProducts(related);
+  .filter(p => {
+    // Nếu cả hai đều null (chưa phân loại) thì vẫn coi là cùng nhóm
+    const cat1 = p.category || "Chưa phân loại";
+    const cat2 = mainProduct.category || "Chưa phân loại";
+    return cat1 === cat2 && p.id !== mainProduct.id;
+  })
+  .slice(0, 4);
         }
       } catch (err) {
         console.error('Lỗi lấy dữ liệu:', err);
@@ -141,8 +145,14 @@ const ProductDetail = () => {
         {/* CỘT PHẢI: THÔNG TIN */}
         <div className="pd-info-box">
           <div className="pd-category-tag">
-            Danh mục: <Link to={`/shop?category=${product.category}`} style={{ color: '#c5a059', fontWeight: 'bold' }}>{product.category}</Link>
-          </div>
+  Danh mục: 
+  <Link 
+    to={`/shop?category=${product.category || 'Chưa phân loại'}`} 
+    style={{ color: '#c5a059', fontWeight: 'bold' }}
+  >
+    {product.category || 'Chưa phân loại'}
+  </Link>
+</div>
           <h1 className="pd-title">{product.name}</h1>
           
           <div className="pd-rating">
@@ -210,7 +220,7 @@ const ProductDetail = () => {
                         <img src={getImageUrl(item.images || item.image)} alt={item.name} />
                       </Link>
                       <div className="card-body">
-                        <div className="card-category">{item.category}</div>
+                        <div className="card-category">{item.category || 'Chưa phân loại'}</div>
                         <Link to={`/product/${item.id}`} className="card-title">{item.name}</Link>
                         <div className="card-price-row">
                           <span className="current-price">{Number(item.price).toLocaleString()}đ</span>

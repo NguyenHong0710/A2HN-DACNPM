@@ -8,7 +8,7 @@ import {
 import CIcon from '@coreui/icons-react'
 import { 
   cilSearch, cilPrint, cilInfo, cilCloudDownload, cilDescription, cilBan, 
-  cilCreditCard, cilWallet
+  cilCreditCard, cilWallet, cilCheckCircle, cilUser, cilLocationPin, cilPhone
 } from '@coreui/icons'
 import * as XLSX from 'xlsx'
 
@@ -69,7 +69,7 @@ const Invoice = () => {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          id: id,      // ĐỔI TỪ order_code THÀNH id ĐỂ KHỚP VỚI CONTROLLER
+          id: id,      
           status: newStatus 
         })
       
@@ -87,14 +87,14 @@ const Invoice = () => {
     }
   };
 
-  // --- 3. XỬ LÝ HỦY ĐƠN HÀNG QUA MODAL (Có lý do) ---
+  // --- 3. XỬ LÝ HỦY ĐƠN HÀNG QUA MODAL ---
   const handleConfirmCancel = async () => {
     if (!cancelReason.trim()) {
       alert('Vui lòng nhập lý do hủy đơn hàng!');
       return;
     }
     
-    await handleUpdateStatus(invoiceToCancel.id, 'cancelled');
+    await handleUpdateStatus(invoiceToCancel.id, 'Hủy đơn');
     setCancelModalVisible(false);
   }
 
@@ -109,22 +109,17 @@ const Invoice = () => {
     setModalVisible(true)
   }
 
-  const openCancelModal = (invoice) => {
-    setInvoiceToCancel(invoice)
-    setCancelReason('')
-    setCancelModalVisible(true)
-  }
-
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0)
   }
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'delivered': case 'Đã giao hàng': return 'success';
-      case 'pending': case 'Chờ xử lý': return 'warning';
-      case 'shipping': case 'Đang giao hàng': return 'info';
-      case 'cancelled': case 'Hủy': return 'danger';
+      case 'Đã giao': case 'delivered': return 'success';
+      case 'Chờ xử lý': case 'pending': return 'warning';
+      case 'Đang giao': case 'shipping': return 'info';
+      case 'Đã xác nhận': return 'primary'; 
+      case 'Hủy đơn': case 'cancelled': return 'danger';
       default: return 'secondary';
     }
   };
@@ -171,6 +166,8 @@ const Invoice = () => {
         .table-green-custom td { padding: 16px; vertical-align: middle; border-bottom: 1px solid #f1f1f1; }
         .text-price { color: #dc2626; font-weight: 700; }
         .invoice-box { border: 1px solid #e5e7eb; padding: 20px; border-radius: 10px; background-color: #ffffff; color: #333; }
+        .info-label { color: #6b7280; font-size: 0.9rem; margin-bottom: 2px; }
+        .info-value { color: #111827; font-weight: 600; margin-bottom: 10px; }
       `}</style>
 
       <CCard className="card-green-theme mb-4">
@@ -216,7 +213,6 @@ const Invoice = () => {
                     </CTableDataCell>
                     <CTableDataCell className="text-end">
                         <div className="d-flex align-items-center justify-content-end gap-1">
-                            {/* Ô CHỌN TRẠNG THÁI NHANH */}
                             <select 
                                 className="form-select form-select-sm w-auto me-2"
                                 value={item.deliveryStatus}
@@ -224,9 +220,10 @@ const Invoice = () => {
                                 style={{ fontSize: '0.8rem', borderColor: '#e5e7eb' }}
                             >
                                 <option value="Chờ xử lý">Chờ xử lý</option>
-                                <option value="Hủy đơn">Hủy đơn</option>
+                                <option value="Đã xác nhận">Đã xác nhận</option> 
                                 <option value="Đang giao">Đang giao</option>
                                 <option value="Đã giao">Đã giao</option>
+                                <option value="Hủy đơn">Hủy đơn</option>
                             </select>
 
                             <CTooltip content="Chi tiết"><CButton color="link" className="p-1" onClick={() => openInvoiceDetail(item)}><CIcon icon={cilInfo} /></CButton></CTooltip>
@@ -241,21 +238,49 @@ const Invoice = () => {
         </CCardBody>
       </CCard>
 
-      {/* MODAL CHI TIẾT */}
+      {/* MODAL CHI TIẾT HÓA ĐƠN */}
       <CModal visible={modalVisible} onClose={() => setModalVisible(false)} size="lg" alignment="center">
-          <CModalHeader><CModalTitle>Chi Tiết Hóa Đơn</CModalTitle></CModalHeader>
-          <CModalBody>
+          <CModalHeader className="border-0"><CModalTitle className="fw-bold">Chi Tiết Hóa Đơn</CModalTitle></CModalHeader>
+          <CModalBody className="pt-0">
             {selectedInvoice && (
-              <div className="invoice-box">
-                <CRow className="mb-4">
-                    <CCol xs={6}><h4 className="fw-bold" style={{ color: "#D99485" }}>Lumina Jewelry</h4></CCol>
-                    <CCol xs={6} className="text-end"><h5 className="fw-bold">{selectedInvoice.id}</h5><div className="small text-muted">{selectedInvoice.date}</div></CCol>
+              <div className="invoice-box shadow-none border-0 pt-0">
+                {/* Phần Header Modal */}
+                <CRow className="mb-4 align-items-center border-bottom pb-3">
+                    <CCol xs={6}>
+                      <h4 className="fw-bold mb-0" style={{ color: "#D99485" }}>Lumina Jewelry</h4>
+                      <div className="text-muted small">Cửa hàng trang sức cao cấp</div>
+                    </CCol>
+                    <CCol xs={6} className="text-end">
+                      <div className="fw-bold fs-5">Mã HĐ: #{selectedInvoice.id}</div>
+                      <div className="small text-muted">Ngày đặt: {selectedInvoice.date}</div>
+                    </CCol>
                 </CRow>
-                <CTable hover responsive bordered>
+
+                {/* THÊM MỚI: THÔNG TIN NGƯỜI ĐẶT */}
+                <CRow className="mb-4 bg-light p-3 rounded mx-0">
+                    <CCol md={6}>
+                      <div className="info-label"><CIcon icon={cilUser} className="me-1"/> Người đặt hàng</div>
+                      <div className="info-value">{selectedInvoice.customer || 'N/A'}</div>
+                      
+                      <div className="info-label"><CIcon icon={cilPhone} className="me-1"/> Số điện thoại</div>
+                      <div className="info-value">{selectedInvoice.phone || 'Chưa cung cấp'}</div>
+                    </CCol>
+                    <CCol md={6}>
+                      <div className="info-label"><CIcon icon={cilLocationPin} className="me-1"/> Địa chỉ giao hàng</div>
+                      <div className="info-value">{selectedInvoice.address || 'Chưa cập nhật địa chỉ'}</div>
+                      
+                      <div className="info-label">Phương thức thanh toán</div>
+                      <div className="info-value">{selectedInvoice.payment_method || 'Tiền mặt'}</div>
+                    </CCol>
+                </CRow>
+
+                {/* Danh sách sản phẩm */}
+                <div className="mb-2 fw-bold"><CIcon icon={cilDescription} className="me-1"/> Danh sách sản phẩm</div>
+                <CTable hover responsive bordered className="mb-3">
                     <CTableHead className="table-light">
                       <CTableRow>
                         <CTableHeaderCell>Sản phẩm</CTableHeaderCell>
-                        <CTableHeaderCell className="text-center">SL</CTableHeaderCell>
+                        <CTableHeaderCell className="text-center" style={{width: '60px'}}>SL</CTableHeaderCell>
                         <CTableHeaderCell className="text-end">Đơn giá</CTableHeaderCell>
                         <CTableHeaderCell className="text-end">Thành tiền</CTableHeaderCell>
                       </CTableRow>
@@ -271,15 +296,19 @@ const Invoice = () => {
                         ))}
                     </CTableBody>
                 </CTable>
-                <div className="text-end mt-3 border-top pt-2">
-                    <span className="fs-5 text-danger fw-bold">Tổng thanh toán: {formatCurrency(selectedInvoice.amount)}</span>
+
+                <div className="text-end mt-3 border-top pt-3">
+                    <div className="text-muted small">Thanh toán thực tế</div>
+                    <span className="fs-4 text-danger fw-bold">Tổng: {formatCurrency(selectedInvoice.amount)}</span>
                 </div>
               </div>
             )}
           </CModalBody>
-          <CModalFooter>
+          <CModalFooter className="border-0">
             <CButton color="secondary" onClick={() => setModalVisible(false)}>Đóng</CButton>
-            <CButton color="success" onClick={handlePrint} className="text-white"><CIcon icon={cilPrint} className="me-2"/> In hóa đơn</CButton>
+            <CButton color="success" onClick={handlePrint} className="text-white">
+              <CIcon icon={cilPrint} className="me-2"/> In hóa đơn
+            </CButton>
           </CModalFooter>
       </CModal>
     </div>

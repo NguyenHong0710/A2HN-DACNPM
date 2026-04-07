@@ -115,50 +115,65 @@ class PromotionController extends Controller
     // ====================================================================
     // 7. KIỂM TRA MÃ VOUCHER KHI KHÁCH HÀNG ÁP DỤNG Ở TRANG CHECKOUT (MỚI)
     // ====================================================================
-    public function validateVoucher(Request $request)
-    {
-        $request->validate([
-            'code' => 'required|string',
-            'total' => 'required|numeric' // Tổng tiền từ React
-        ]);
+   public function validateVoucher(Request $request)
+{
+    $request->validate([
+        'code' => 'required|string',
+        'items' => 'required|array', // Thay vì gửi 'total', hãy gửi cả danh sách 'items'
+    ]);
 
-        $code = $request->input('code');
-        $orderTotal = $request->input('total');
+    $code = $request->input('code');
+    $items = $request->input('items'); // Mảng các sản phẩm [{id: 1, price: 100, qty: 1}, ...]
 
-        // Tìm mã voucher trong Database bằng model Promotion
-        $voucher = Promotion::where('code', $code)->first();
+    $voucher = Promotion::where('code', $code)->first();
 
-        // 1. Kiểm tra mã có tồn tại không
-        if (!$voucher) {
-            return response()->json(['message' => 'Mã ưu đãi không tồn tại.'], 404);
+    if (!$voucher) {
+        return response()->json(['message' => 'Mã không tồn tại.'], 404);
+    }
+
+    $discountAmount = 0;
+
+    // TRƯỜNG HỢP 1: Voucher áp dụng cho sản phẩm cụ thể
+    if ($voucher->scope === 'product') {
+        // Tìm xem sản phẩm đó có trong giỏ hàng không
+        $targetItem = null;
+        foreach ($items as $item) {
+            if ($item['product_id'] == $voucher->product_id) {
+                $targetItem = $item;
+                break;
+            }
         }
 
-        // 2. Kiểm tra trạng thái (status = 0 là đang tắt)
-        if ($voucher->status == 0) {
-            return response()->json(['message' => 'Mã ưu đãi đã hết hạn hoặc bị vô hiệu hóa.'], 400);
+        if (!$targetItem) {
+            return response()->json(['message' => 'Mã này không áp dụng cho các sản phẩm trong giỏ.'], 400);
         }
 
-        // 3. Tính toán số tiền được giảm
-        $discountAmount = 0;
-        
-        // Dựa vào code của bạn, giá trị giảm đang được lưu ở cột 'value'
+        // CHỈ TÍNH GIẢM GIÁ TRÊN SẢN PHẨM NÀY
+        $itemTotal = $targetItem['price'] * $targetItem['qty'];
         if ($voucher->type === 'percent') {
-            // Nếu bạn có loại giảm theo phần trăm
-            $discountAmount = ($orderTotal * $voucher->value) / 100;
+            $discountAmount = ($itemTotal * $voucher->value) / 100;
         } else {
-            // Mặc định giảm theo số tiền cố định
             $discountAmount = $voucher->value;
         }
+    } 
+    // TRƯỜNG HỢP 2: Voucher áp dụng toàn hệ thống
+    else {
+        $orderTotal = collect($items)->sum(function($item) {
+            return $item['price'] * $item['qty'];
+        });
 
-        // Đảm bảo tiền giảm không lớn hơn tổng tiền đơn hàng
-        if ($discountAmount > $orderTotal) {
-            $discountAmount = $orderTotal;
+        if ($voucher->type === 'percent') {
+            $discountAmount = ($orderTotal * $voucher->value) / 100;
+        } else {
+            $discountAmount = $voucher->value;
         }
-// Trả về kết quả cho React
-        return response()->json([
-            'code' => $voucher->code,
-            'discount_amount' => $discountAmount, // Checkout.js đang hứng biến này
-            'message' => 'Áp dụng thành công'
-        ], 200);
     }
+
+    return response()->json([
+    'code' => $voucher->code,
+    'discount_amount' => $discountAmount,
+    'product_id' => $voucher->product_id, // Thêm dòng này để React nhận biết sản phẩm
+    'message' => 'Áp dụng thành công'
+], 200);
+}
 }
