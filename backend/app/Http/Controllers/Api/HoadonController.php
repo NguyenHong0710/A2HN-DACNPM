@@ -43,10 +43,10 @@ class HoadonController extends Controller
                 'customer'        => $request->fullName,
                 'phone'           => $request->phone,
                 'address'         => $request->address,
-                'amount'          => $calculatedAmount, 
+                'amount'          => $calculatedAmount,
                 'payment_method'  => $request->payment_method,
-                
-                'deliveryStatus'  => 'pending', 
+
+                'deliveryStatus'  => 'pending',
             ]);
 
             // 3. Lưu chi tiết từng sản phẩm (SỬA Ở ĐÂY)
@@ -101,7 +101,7 @@ class HoadonController extends Controller
             }
 
             $invoices = Hoadon::with('chiTiet')
-                ->where('user_id', $user->id) 
+                ->where('user_id', $user->id)
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -131,14 +131,15 @@ class HoadonController extends Controller
                 $shipping->update(['status' => $request->status]);
             } else {
                 Shipping::create([
-                    'id'           => 'SHIP-' . $hoadon->id . '-' . time(), 
+                    'id'           => 'SHIP-' . $hoadon->id . '-' . time(),
                     'orderId'      => $hoadon->id,
                     'customer'     => $hoadon->customer,
                     'phone'        => $hoadon->phone,
                     'address'      => $hoadon->address,
                     'status'       => $request->status,
+                    'product_id' => $hoadon->id,
                     'method'       => 'Giao hàng tiêu chuẩn',
-                    'estimatedTime' => now()->addDays(3), 
+                    'estimatedTime' => now()->addDays(3),
                 ]);
             }
 

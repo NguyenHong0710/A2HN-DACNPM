@@ -4,7 +4,6 @@ import { useCart } from '../../store/CartContext';
 import Services from './Services';
 import { FiArrowRight, FiShoppingBag, FiStar } from 'react-icons/fi';
 // Import thêm bộ icon trang sức chuyên dụng
-import { GiDiamondRing, GiNecklace, GiDropEarrings, GiGemChain } from 'react-icons/gi';
 import './Home.css';
 import { API_BASE as API_BASE_URL } from "../../../config";
 import { GiDiamondRing, GiNecklace, GiDropEarrings, GiGemChain } from 'react-icons/gi';

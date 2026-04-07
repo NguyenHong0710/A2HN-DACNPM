@@ -30,27 +30,27 @@ Route::prefix('promotions')->group(function () {
     Route::post('/toggle-status', [PromotionController::class, 'toggleStatus']); // Bật/tắt
 });
 // --- 1. XÁC THỰC (PUBLIC) ---
-Route::post('/login', [AuthController::class, 'login']); 
+Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register/init', [AuthController::class, 'registerInit']);
 Route::post('/register/verify', [AuthController::class, 'registerVerify']);
 Route::post('/vouchers/validate', [PromotionController::class, 'validateVoucher']);
 // --- 2. PUBLIC ROUTES (XEM SẢN PHẨM/DANH MỤC KHÔNG CẦN LOGIN) ---
-Route::get('/categories', [CategoryController::class, 'index']); 
+Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{id}', [CategoryController::class, 'show']);
-Route::get('/products', [ProductController::class, 'index']); 
-Route::get('/products/search', [ProductController::class, 'search']); 
+Route::get('/products', [ProductController::class, 'index']);
+Route::get('/products/search', [ProductController::class, 'search']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 
 // --- 3. PROTECTED ROUTES (YÊU CẦU ĐĂNG NHẬP) ---
 Route::middleware(['auth:sanctum'])->group(function () {
-    
+
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
         return response()->json($request->user());
     });
 
     // --- HỒ SƠ CÁ NHÂN ---
-    Route::get('/profile', [ProfileController::class, 'index']); 
+    Route::get('/profile', [ProfileController::class, 'index']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar']);
 
@@ -75,9 +75,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // --- QUẢN LÝ HÓA ĐƠN (INVOICES) ---
     // Route lấy danh sách cho trang Hóa Đơn (khớp với React)
     Route::get('/all-invoices', [HoadonController::class, 'index']);
-    Route::get('/get_invoices', [HoadonController::class, 'index']); 
+    Route::get('/get_invoices', [HoadonController::class, 'index']);
     Route::post('/update_order_status', [HoadonController::class, 'update']);
-    
+
     // Route cho khách hàng
     Route::post('/create_invoice', [HoadonController::class, 'store']); // Tạo đơn hàng mới
     Route::get('/my-invoices', [HoadonController::class, 'getMyInvoices']);
@@ -86,7 +86,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // --- QUẢN LÝ VẬN CHUYỂN (SHIPPING) ---
     // Route lấy danh sách (khớp với fetch trong Shipping.js)
     Route::get('/get_shipping', [ShippingController::class, 'index']);
-    
+
     // Route cập nhật trạng thái/chi tiết (khớp với handleSave/handleUpdateStatusQuick)
     Route::post('/update_shipping', [ShippingController::class, 'update']);
 
@@ -102,7 +102,28 @@ Route::middleware(['auth:sanctum'])->group(function () {
         return response()->json(['status' => 'success', 'data' => []]);
     });
 
+
+
     Route::get('/get_conversations', function (Request $request) {
         return response()->json(['status' => 'success', 'data' => []]);
     });
+
+
+});
+
+// API cho Khách hàng gửi Đánh giá (Dán vào routes/api.php)
+Route::post('/submit-review', function (\Illuminate\Http\Request $request) {
+    try {
+        \App\Models\Review::create([
+            // THÊM ĐUÔI "?? 1" VÀO DÒNG NÀY:
+            'product_id' => $request->product_id ?? 1,
+            'customer_name' => $request->customer_name ?? 'Khách Hàng',
+            'rating' => $request->rating,
+            'comment' => $request->comment,
+            'status' => 'pending' // Chờ Admin duyệt
+        ]);
+        return response()->json(['status' => 'success', 'message' => 'Đã lưu đánh giá']);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
+    }
 });
