@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Hoadon;
 use Illuminate\Http\Request;
+use App\Models\Shipping; // Thêm dòng này
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class HoadonController extends Controller
 {
@@ -135,32 +137,65 @@ class HoadonController extends Controller
      */
     // App/Http/Controllers/Api/HoadonController.php
 
-public function update(Request $request)
-    {
-        try {
-            $shipping = Shipping::find($request->id);
+/**
+     * Cập nhật trạng thái đơn hàng (Dành cho Admin/Dashboard)
+     * Đã đổi tên từ update thành updateStatus để khớp với Route
+     */
+   /**
+     * Cập nhật trạng thái đơn hàng (Dành cho Admin/Dashboard)
+     * Đã đổi tên từ update thành updateStatus để khớp với Route
+     */
+    public function updateStatus(Request $request)
+{
+    try {
+        // 1. Tìm hóa đơn trực tiếp bằng ID
+        $hoadon = Hoadon::find($request->id);
 
-            if (!$shipping) {
-                return response()->json(['status' => 'error', 'message' => 'Không tìm thấy vận đơn'], 404);
-            }
+        if (!$hoadon) {
+            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy hóa đơn'], 404);
+        }
 
-            // Cập nhật dữ liệu vận chuyển
-            $shipping->update($request->all());
+        // 2. Cập nhật trạng thái giao hàng
+        $newStatus = $request->status ?? $request->deliveryStatus;
+        
+        if ($newStatus) {
+            $hoadon->update(['deliveryStatus' => $newStatus]);
 
-            // Đồng bộ trạng thái sang bảng Hóa đơn (để trang Hóa đơn cũng cập nhật theo)
-            if ($request->has('status')) {
-                $hoadon = Hoadon::find($shipping->orderId);
-                if ($hoadon) {
-                    $hoadon->update(['deliveryStatus' => $request->status]);
+            // 3. ĐỒNG BỘ SANG BẢNG SHIPPING
+            if (in_array($newStatus, ['Đang giao', 'Đã giao'])) {
+                
+                $shipping = \App\Models\Shipping::where('orderId', $hoadon->id)->first();
+
+                if (!$shipping) {
+                    // TẠO MỚI NẾU CHƯA CÓ (Dùng đúng tên cột trong fillable của bạn)
+                    \App\Models\Shipping::create([
+                        'id'            => 'SHIP-' . strtoupper(uniqid()), // Tạo mã vận đơn ngẫu nhiên
+                        'orderId'       => $hoadon->id,
+                        'customer'      => $hoadon->customer_name ?? 'Khách hàng', // Lưu ý: xem lại cột tên khách ở bảng hoadon của bạn là gì
+                        'method'        => 'Giao hàng tiêu chuẩn',
+                        'status'        => $newStatus,
+                        'estimatedTime' => now()->addDays(3),
+                        'address'       => $hoadon->address ?? 'Chưa cập nhật', // Lưu ý: xem lại cột địa chỉ ở bảng hoadon
+                        'note'          => 'Tự động tạo từ Hóa đơn'
+                    ]);
+                } else {
+                    // CẬP NHẬT TRẠNG THÁI NẾU ĐÃ CÓ VẬN ĐƠN
+                    $shipping->update(['status' => $newStatus]);
                 }
             }
-
-            return response()->json(['status' => 'success', 'message' => 'Cập nhật thành công']);
-        } catch (\Exception $e) {
-            // Trả về lỗi chi tiết để bạn xem trong tab Preview nếu còn lỗi 500
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
+
+        return response()->json([
+            'status' => 'success', 
+            'message' => 'Cập nhật trạng thái tuyệt tác thành công',
+            'current_status' => $hoadon->deliveryStatus
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error("Update Status Error: " . $e->getMessage());
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
+}
     /**
      * Hủy đơn hàng (Dành cho Người dùng ở trang Profile)
      */
