@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Hoadon;
 use App\Models\ChiTietHoadon;
 use Illuminate\Http\Request;
+use App\Models\Shipping;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use App\Models\Shipping;
+use Illuminate\Support\Facades\Auth;
 
 class HoadonController extends Controller
 {
@@ -45,11 +46,7 @@ class HoadonController extends Controller
                 'address'         => $request->address,
                 'amount'          => $calculatedAmount,
                 'payment_method'  => $request->payment_method,
-
                 'deliveryStatus'  => 'pending',
-
-                'deliveryStatus'  => 'pending',
-
             ]);
 
             $user->update([
@@ -122,58 +119,63 @@ class HoadonController extends Controller
                 'data' => $this->formatInvoices($invoices)
             ]);
         } catch (Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            Log::error("GetMyInvoices Error: " . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Lỗi khi lấy lịch sử đơn hàng: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     /**
-     * CẬP NHẬT TRẠNG THÁI (Đã tích hợp logic Xác nhận & Vận chuyển)
+     * Cập nhật trạng thái đơn hàng (Dành cho Admin/Dashboard)
      */
-    public function update(Request $request)
+    public function updateStatus(Request $request)
     {
         DB::beginTransaction();
         try {
             $hoadon = Hoadon::find($request->id);
-            if (!$hoadon) return response()->json(['status' => 'error', 'message' => 'Không tìm thấy'], 404);
 
-            // Cập nhật trạng thái hóa đơn
-            $hoadon->update(['deliveryStatus' => $request->status]);
+            if (!$hoadon) {
+                return response()->json(['status' => 'error', 'message' => 'Không tìm thấy hóa đơn'], 404);
+            }
 
-            // Xác định trạng thái vận chuyển tương ứng
-            // Nếu là 'Đã xác nhận' thì bên vận chuyển là 'Chờ lấy hàng', các trạng thái khác giữ nguyên theo request
-            $shippingStatus = ($request->status === 'Đã xác nhận') ? 'Chờ lấy hàng' : $request->status;
+            $newStatus = $request->status ?? $request->deliveryStatus;
+            
+            if ($newStatus) {
+                $hoadon->update(['deliveryStatus' => $newStatus]);
 
-            $shipping = Shipping::where('orderId', $hoadon->id)->first();
-            if ($shipping) {
-                $shipping->update(['status' => $shippingStatus]);
-            } else {
-                Shipping::create([
+                // Đồng bộ sang bảng Shipping
+                $shipping = Shipping::where('orderId', $hoadon->id)->first();
+                $shippingStatus = ($newStatus === 'Đã xác nhận') ? 'Chờ lấy hàng' : $newStatus;
 
-                    'id'            => 'SHIP-' . $hoadon->id . '-' . time(),
-                    'orderId'       => $hoadon->id,
-                    'customer'      => $hoadon->customer,
-                    'phone'         => $hoadon->phone,
-                    'address'       => $hoadon->address,
-                    'status'        => $shippingStatus,
-                    'method'        => 'Giao hàng tiêu chuẩn',
-                    'estimatedTime' => now()->addDays(3),
-
-                    'id'           => 'SHIP-' . $hoadon->id . '-' . time(),
-                    'orderId'      => $hoadon->id,
-                    'customer'     => $hoadon->customer,
-                    'phone'        => $hoadon->phone,
-                    'address'      => $hoadon->address,
-                    'status'       => $request->status,
-                    'method'       => 'Giao hàng tiêu chuẩn',
-                    'estimatedTime' => now()->addDays(3),
-
-                ]);
+                if (!$shipping) {
+                    Shipping::create([
+                        'id'            => 'SHIP-' . $hoadon->id . '-' . time(),
+                        'orderId'       => $hoadon->id,
+                        'customer'      => $hoadon->customer ?? 'Khách hàng',
+                        'phone'         => $hoadon->phone,
+                        'address'       => $hoadon->address ?? 'Chưa cập nhật',
+                        'method'        => 'Giao hàng tiêu chuẩn',
+                        'status'        => $shippingStatus,
+                        'estimatedTime' => now()->addDays(3),
+                        'note'          => 'Tự động tạo từ Hóa đơn'
+                    ]);
+                } else {
+                    $shipping->update(['status' => $shippingStatus]);
+                }
             }
 
             DB::commit();
-            return response()->json(['status' => 'success', 'message' => 'Cập nhật thành công!']);
-        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'success', 
+                'message' => 'Cập nhật trạng thái thành công',
+                'current_status' => $hoadon->deliveryStatus
+            ]);
+
+        } catch (Exception $e) {
             DB::rollBack();
+            Log::error("Update Status Error: " . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
