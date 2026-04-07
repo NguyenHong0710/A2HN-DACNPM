@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react'
 import {
-  CCard, CCardBody, CCardHeader, CCol, CRow, CTable, CTableBody, CTableHead, 
-  CTableHeaderCell, CTableRow, CTableDataCell, CButton, CFormTextarea, CModal, 
-  CModalHeader, CModalTitle, CModalBody, CModalFooter, CBadge, CFormSelect, 
+  CCard, CCardBody, CCardHeader, CCol, CRow, CTable, CTableBody, CTableHead,
+  CTableHeaderCell, CTableRow, CTableDataCell, CButton, CFormTextarea, CModal,
+  CModalHeader, CModalTitle, CModalBody, CModalFooter, CBadge, CFormSelect,
   CFormLabel, CNav, CNavItem, CNavLink, CSpinner
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { 
+import {
   cilStar, cilCommentSquare, cilWarning, cilCheckCircle
 } from '@coreui/icons'
 import { API_BASE as API_BASE_URL } from 'src/config';
 
 const Reviews = () => {
-  const [reviews, setReviews] = useState([]) 
+  const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filterType, setFilterType] = useState('All') 
-  
+  const [filterType, setFilterType] = useState('All')
+
   const [replyModal, setReplyModal] = useState(false)
   const [currentReview, setCurrentReview] = useState(null)
   const [replyText, setReplyText] = useState('')
@@ -66,21 +66,21 @@ const Reviews = () => {
     try {
       const res = await fetch(`${API_BASE_URL}/handle_reviews.php`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ 
-          action: 'reply', 
-          id: currentReview.id, 
-          reply: replyText 
+        body: JSON.stringify({
+          action: 'reply',
+          id: currentReview.id,
+          reply: replyText
         })
       });
       const result = await res.json();
       if (result.status === 'success') {
         alert("Đã gửi phản hồi thành công!");
         setReplyModal(false);
-        fetchReviews(); 
+        fetchReviews();
       }
     } catch (err) {
       alert("Lỗi kết nối server.");
@@ -92,14 +92,14 @@ const Reviews = () => {
     try {
       const res = await fetch(`${API_BASE_URL}/handle_reviews.php`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ 
-          action: 'report', 
-          id: currentReview.id, 
-          reason: reportReason 
+        body: JSON.stringify({
+          action: 'report',
+          id: currentReview.id,
+          reason: reportReason
         })
       });
       const result = await res.json();
@@ -124,11 +124,11 @@ const Reviews = () => {
 
   const renderStars = (rating) => {
     return [...Array(5)].map((_, i) => (
-      <CIcon 
-        key={i} 
-        icon={cilStar} 
-        size="sm" 
-        className={i < parseInt(rating) ? "text-warning" : "text-secondary opacity-25"} 
+      <CIcon
+        key={i}
+        icon={cilStar}
+        size="sm"
+        className={i < parseInt(rating) ? "text-warning" : "text-secondary opacity-25"}
       />
     ));
   }
@@ -143,88 +143,88 @@ const Reviews = () => {
     color: #000000;
   }
 
-  .card-green-theme { 
-    background-color: #ffffff; 
-    color: #000000; 
-    border: 1px solid #e5e7eb; 
+  .card-green-theme {
+    background-color: #ffffff;
+    color: #000000;
+    border: 1px solid #e5e7eb;
     border-radius: 12px;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.05); 
+    box-shadow: 0 6px 16px rgba(0,0,0,0.05);
   }
 
-  .modal-green-content { 
-    background-color: #ffffff; 
-    color: #000000; 
-    border: 1px solid #e5e7eb; 
+  .modal-green-content {
+    background-color: #ffffff;
+    color: #000000;
+    border: 1px solid #e5e7eb;
   }
 
-  .table-green-custom { 
-    --cui-table-color: #000000; 
-    --cui-table-bg: #ffffff; 
-    --cui-table-border-color: #e5e7eb; 
-    --cui-table-hover-bg: #f9fafb; 
+  .table-green-custom {
+    --cui-table-color: #000000;
+    --cui-table-bg: #ffffff;
+    --cui-table-border-color: #e5e7eb;
+    --cui-table-hover-bg: #f9fafb;
   }
 
-  .table-green-custom thead th { 
-    background-color: #f3f4f6; 
-    color: #000000; 
-    font-weight: 600; 
-    border-bottom: 2px solid #e5e7eb; 
-    padding: 14px 16px; 
-    font-size: 0.85rem; 
+  .table-green-custom thead th {
+    background-color: #f3f4f6;
+    color: #000000;
+    font-weight: 600;
+    border-bottom: 2px solid #e5e7eb;
+    padding: 14px 16px;
+    font-size: 0.85rem;
   }
 
-  .table-green-custom td { 
-    padding: 16px; 
-    vertical-align: middle; 
-    border-bottom: 1px solid #f1f1f1; 
+  .table-green-custom td {
+    padding: 16px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f1f1;
     color: #000000;
   }
 
-  .form-control-green, 
-  .form-select-green { 
-    background-color: #ffffff; 
-    border: 1px solid #d1d5db; 
-    color: #000000; 
+  .form-control-green,
+  .form-select-green {
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+    color: #000000;
   }
 
-  .form-control-green:focus, 
-  .form-select-green:focus { 
-    border-color: #9ca3af; 
-    box-shadow: 0 0 0 0.2rem rgba(156,163,175,0.2); 
-    background-color: #ffffff; 
-    color: #000000; 
+  .form-control-green:focus,
+  .form-select-green:focus {
+    border-color: #9ca3af;
+    box-shadow: 0 0 0 0.2rem rgba(156,163,175,0.2);
+    background-color: #ffffff;
+    color: #000000;
   }
 
   /* Tabs */
-  .nav-pills .nav-link { 
-    color: #000000; 
-    cursor: pointer; 
+  .nav-pills .nav-link {
+    color: #000000;
+    cursor: pointer;
     border-radius: 8px;
   }
 
-  .nav-pills .nav-link.active { 
-    background-color: #374151 !important; 
+  .nav-pills .nav-link.active {
+    background-color: #374151 !important;
     color: #ffffff !important;   /* giữ trắng cho tab active */
   }
 
   /* Reply box */
-  .reply-box { 
-    background-color: #f9fafb; 
-    border-left: 3px solid #9ca3af; 
-    padding: 10px; 
-    margin-top: 8px; 
-    border-radius: 6px; 
-    font-size: 0.9rem; 
+  .reply-box {
+    background-color: #f9fafb;
+    border-left: 3px solid #9ca3af;
+    padding: 10px;
+    margin-top: 8px;
+    border-radius: 6px;
+    font-size: 0.9rem;
     color: #000000;
   }
 
   /* Mobile card */
-  .mobile-card { 
-    background-color: #ffffff; 
-    border: 1px solid #e5e7eb; 
-    border-radius: 12px; 
-    padding: 15px; 
-    margin-bottom: 15px; 
+  .mobile-card {
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.04);
     color: #000000;
   }
@@ -258,7 +258,7 @@ const Reviews = () => {
             </CCol>
           </CRow>
         </CCardHeader>
-        
+
         <CCardBody>
           <div className="d-none d-md-block">
             <CTable hover responsive className="table-green-custom mb-0">

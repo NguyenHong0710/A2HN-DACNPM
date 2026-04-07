@@ -165,7 +165,9 @@
   color: var(--white);
 }
 
-/* --- 2. DANH MỤC NỔI BẬT (VÒNG TRÒN) --- */
+/* =========================================
+   DANH MỤC NỔI BẬT (DÙNG ICON - TONE SANG TRỌNG)
+   ========================================= */
 .category-section {
   padding: 80px 20px;
   background-color: #fafafa;
@@ -243,6 +245,7 @@
   transform: translateY(-10px);
   box-shadow: 0 15px 25px rgba(197, 160, 89, 0.25);
   border-color: #111;
+
 }
 
 .category-item-circle:hover .category-name {
@@ -269,6 +272,30 @@
   }
 }
 
+
+.category-item-circle:hover .category-name {
+  color: #c5a059;
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .category-grid-circles {
+    gap: 30px;
+  }
+  .circle-icon-wrapper {
+    width: 80px;
+    height: 80px;
+    font-size: 35px;
+    margin-bottom: 12px;
+  }
+  .category-name {
+    font-size: 0.95rem;
+  }
+  .category-section .section-title {
+    font-size: 1.8rem;
+  }
+}
 /* --- 3. SẢN PHẨM NỔI BẬT --- */
 .featured-section {
   margin-top: 20px;

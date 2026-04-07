@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Hoadon;
-use App\Models\ChiTietHoadon; 
+use App\Models\ChiTietHoadon;
 use Illuminate\Http\Request;
 use Exception;
 use Illuminate\Support\Facades\Log;
@@ -43,13 +43,17 @@ class HoadonController extends Controller
                 'customer'        => $request->fullName,
                 'phone'           => $request->phone,
                 'address'         => $request->address,
-                'amount'          => $calculatedAmount, 
+                'amount'          => $calculatedAmount,
                 'payment_method'  => $request->payment_method,
-                'deliveryStatus'  => 'pending', 
+
+                'deliveryStatus'  => 'pending',
+
+                'deliveryStatus'  => 'pending',
+
             ]);
 
             $user->update([
-                'name'    => $request->fullName, 
+                'name'    => $request->fullName,
                 'phone'   => $request->phone,
                 'address' => $request->address,
             ]);
@@ -63,7 +67,7 @@ class HoadonController extends Controller
                     'name'   => $item['name'] ?? 'Sản phẩm không tên',
                     'qty'    => $item['qty'] ?? ($item['quantity'] ?? 1),
                     'price'  => $item['price'] ?? 0,
-                    'images' => $imagePath, 
+                    'images' => $imagePath,
                 ]);
             }
 
@@ -109,7 +113,7 @@ class HoadonController extends Controller
             }
 
             $invoices = Hoadon::with('chiTiet')
-                ->where('user_id', $user->id) 
+                ->where('user_id', $user->id)
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -144,14 +148,25 @@ class HoadonController extends Controller
                 $shipping->update(['status' => $shippingStatus]);
             } else {
                 Shipping::create([
-                    'id'            => 'SHIP-' . $hoadon->id . '-' . time(), 
+
+                    'id'            => 'SHIP-' . $hoadon->id . '-' . time(),
                     'orderId'       => $hoadon->id,
                     'customer'      => $hoadon->customer,
                     'phone'         => $hoadon->phone,
                     'address'       => $hoadon->address,
                     'status'        => $shippingStatus,
                     'method'        => 'Giao hàng tiêu chuẩn',
-                    'estimatedTime' => now()->addDays(3), 
+                    'estimatedTime' => now()->addDays(3),
+
+                    'id'           => 'SHIP-' . $hoadon->id . '-' . time(),
+                    'orderId'      => $hoadon->id,
+                    'customer'     => $hoadon->customer,
+                    'phone'        => $hoadon->phone,
+                    'address'      => $hoadon->address,
+                    'status'       => $request->status,
+                    'method'       => 'Giao hàng tiêu chuẩn',
+                    'estimatedTime' => now()->addDays(3),
+
                 ]);
             }
 
@@ -201,7 +216,7 @@ class HoadonController extends Controller
                         'name'  => $item->name,
                         'qty'   => $item->qty,
                         'price' => (float)$item->price,
-                        'image' => $item->images, 
+                        'image' => $item->images,
                     ];
                 }) : []
             ];
