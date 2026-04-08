@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../../store/CartContext';
 import Services from './Services';
 import { FiArrowRight, FiShoppingBag, FiStar } from 'react-icons/fi';
-// Import thêm bộ icon trang sức chuyên dụng
+// Import bộ icon trang sức chuyên dụng
 import { GiDiamondRing, GiNecklace, GiDropEarrings, GiGemChain } from 'react-icons/gi';
 import './Home.css';
 import { API_BASE as API_BASE_URL } from "../../../config";
@@ -27,17 +27,27 @@ const Home = () => {
     return () => window.removeEventListener('login', checkAuth);
   }, []);
 
-  // 2. GỌI API LẤY SẢN PHẨM THỰC TẾ
+  // 2. GỌI API LẤY SẢN PHẨM THỰC TẾ (ĐÃ ĐƯỢC FIX ĐỂ CHỐNG CRASH)
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
         const res = await fetch(`${API_BASE_URL}/products`);
+        
+        // KIỂM TRA: Nếu server báo lỗi (404, 500,...) thì chặn lại
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error(`Server trả về lỗi ${res.status}:`, errorText);
+          setDbProducts([]); 
+          return; 
+        }
+
         const result = await res.json();
         const data = result.data || result;
         setDbProducts(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Lỗi lấy sản phẩm:", error);
+        setDbProducts([]);
       } finally {
         setLoading(false);
       }
@@ -67,18 +77,30 @@ const Home = () => {
     return () => clearInterval(interval);
   }, [bannerImages.length]);
 
-  // 4. LOGIC XỬ LÝ ẢNH
+  // 4. LOGIC XỬ LÝ ẢNH (Hỗ trợ JSON Array, String đơn, và link tuyệt đối)
   const getImageUrl = (images) => {
+    if (!images) return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
+
     try {
       const parsed = typeof images === 'string' ? JSON.parse(images) : images;
+
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return `http://127.0.0.1:8000/storage/${parsed[0]}`;
+        const firstImage = parsed[0];
+        return firstImage.startsWith('http')
+          ? firstImage
+          : `http://127.0.0.1:8000/storage/${firstImage}`;
       }
-    } catch (e) {}
+    } catch (e) {
+      if (typeof images === 'string' && images.length > 0) {
+          return images.startsWith('http') 
+            ? images 
+            : `http://127.0.0.1:8000/storage/${images}`;
+      }
+    }
     return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
   };
 
-  // 5. DANH MỤC NỔI BẬT (Đã đổi sang Icon và tên chuẩn khớp với filter trang Shop)
+  // 5. DANH MỤC NỔI BẬT
   const circleCategories = [
     { name: 'Nhẫn Bạc', icon: <GiDiamondRing /> },
     { name: 'Dây Chuyền Bạc', icon: <GiNecklace /> },
@@ -112,7 +134,7 @@ const Home = () => {
       <Services />
 
       <div className="home-container">
-        {/* 2. DANH MỤC NỔI BẬT (ICON SANG TRỌNG) */}
+        {/* 2. DANH MỤC NỔI BẬT */}
         <section className="category-section">
           <div className="section-header">
             <h2 className="section-title">Danh Mục Nổi Bật</h2>
@@ -139,7 +161,7 @@ const Home = () => {
           {loading ? (
             <div className="loading-spinner">Đang tải sản phẩm...</div>
           ) : dbProducts.length === 0 ? (
-            <p className="no-data">Sản phẩm đang được cập nhật...</p>
+            <p className="no-data">Sản phẩm đang được cập nhật hoặc Server Backend đang lỗi...</p>
           ) : (
             <div className="product-grid">
               {dbProducts.slice(0, 8).map((product) => (
@@ -149,7 +171,17 @@ const Home = () => {
                         <img src={getImageUrl(product.images)} alt={product.name} />
                     </Link>
                     <div className="product-actions">
-                      <button onClick={() => addToCart(product)} className="action-btn">
+                      <button
+                        onClick={() => {
+                          const validImageUrl = getImageUrl(product.images);
+                          const productToCart = {
+                            ...product,
+                            images: validImageUrl 
+                          };
+                          addToCart(productToCart);
+                        }}
+                        className="action-btn"
+                      >
                         <FiShoppingBag />
                       </button>
                     </div>
@@ -174,7 +206,7 @@ const Home = () => {
           )}
           
           <div className="view-all-wrapper">
-            <Link to="/shop" className="view-alal-btn">Xem tất cả sản phẩm</Link>
+            <Link to="/shop" className="view-all-btn">Xem tất cả sản phẩm</Link>
           </div>
         </section>
       </div>
