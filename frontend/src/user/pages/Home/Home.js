@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../../store/CartContext';
 import Services from './Services';
 import { FiArrowRight, FiShoppingBag, FiStar } from 'react-icons/fi';
-// Import thêm bộ icon trang sức chuyên dụng
+// Import bộ icon trang sức chuyên dụng
+import { GiDiamondRing, GiNecklace, GiDropEarrings, GiGemChain } from 'react-icons/gi';
 import './Home.css';
 import { API_BASE as API_BASE_URL } from "../../../config";
-import { GiDiamondRing, GiNecklace, GiDropEarrings, GiGemChain } from 'react-icons/gi';
+
 const Home = () => {
   const { addToCart } = useCart();
   const [dbProducts, setDbProducts] = useState([]);
@@ -32,11 +33,20 @@ const Home = () => {
       try {
         setLoading(true);
         const res = await fetch(`${API_BASE_URL}/products`);
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error(`Server trả về lỗi ${res.status}:`, errorText);
+          setDbProducts([]); 
+          return; 
+        }
+
         const result = await res.json();
         const data = result.data || result;
         setDbProducts(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Lỗi lấy sản phẩm:", error);
+        setDbProducts([]);
       } finally {
         setLoading(false);
       }
@@ -68,30 +78,28 @@ const Home = () => {
 
   // 4. LOGIC XỬ LÝ ẢNH
   const getImageUrl = (images) => {
-  if (!images) return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
+    if (!images) return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
 
-  // 5. DANH MỤC NỔI BẬT (Đã đổi sang Icon và tên chuẩn khớp với filter trang Shop)
-  try {
-    // Nếu images là chuỗi (JSON string), ta mới parse
-    const parsed = typeof images === 'string' ? JSON.parse(images) : images;
+    try {
+      const parsed = typeof images === 'string' ? JSON.parse(images) : images;
 
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      const firstImage = parsed[0];
-      // Kiểm tra nếu là đường dẫn đầy đủ (http) thì dùng luôn, không thì nối storage
-      return firstImage.startsWith('http')
-        ? firstImage
-        : `http://127.0.0.1:8000/storage/${firstImage}`;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const firstImage = parsed[0];
+        return firstImage.startsWith('http')
+          ? firstImage
+          : `http://127.0.0.1:8000/storage/${firstImage}`;
+      }
+    } catch (e) {
+      if (typeof images === 'string' && images.length > 0) {
+          return images.startsWith('http') 
+            ? images 
+            : `http://127.0.0.1:8000/storage/${images}`;
+      }
     }
-  } catch (e) {
-    // Nếu parse lỗi mà bản thân images đã là string tên file
-    if (typeof images === 'string' && images.length > 0) {
-        return `http://127.0.0.1:8000/storage/${images}`;
-    }
-  }
-  return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
-};
+    return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
+  };
 
-// 5. DANH MỤC NỔI BẬT (Đã đổi sang Icon và tên chuẩn khớp với filter trang Shop)
+  // 5. DANH MỤC NỔI BẬT
   const circleCategories = [
     { name: 'Nhẫn Bạc', icon: <GiDiamondRing /> },
     { name: 'Dây Chuyền Bạc', icon: <GiNecklace /> },
@@ -125,7 +133,7 @@ const Home = () => {
       <Services />
 
       <div className="home-container">
-        {/* 2. DANH MỤC NỔI BẬT (ICON SANG TRỌNG) */}
+        {/* 2. DANH MỤC NỔI BẬT */}
         <section className="category-section">
           <div className="section-header">
             <h2 className="section-title">Danh Mục Nổi Bật</h2>
@@ -152,7 +160,7 @@ const Home = () => {
           {loading ? (
             <div className="loading-spinner">Đang tải sản phẩm...</div>
           ) : dbProducts.length === 0 ? (
-            <p className="no-data">Sản phẩm đang được cập nhật...</p>
+            <p className="no-data">Sản phẩm đang được cập nhật hoặc Server Backend đang lỗi...</p>
           ) : (
             <div className="product-grid">
               {dbProducts.slice(0, 8).map((product) => (
@@ -162,27 +170,20 @@ const Home = () => {
                         <img src={getImageUrl(product.images)} alt={product.name} />
                     </Link>
                     <div className="product-actions">
-  <button
-  onClick={() => {
-    // 1. Sử dụng hàm getImageUrl để lấy link ảnh tuyệt đối (đã xử lý JSON/Mảng)
-    const validImageUrl = getImageUrl(product.images);
-
-    // 2. Tạo object mới mang theo trường 'images' (đúng tên bạn muốn)
-    const productToCart = {
-      ...product,
-      images: validImageUrl // Gán URL đã xử lý xong vào đây
-    };
-
-    // 3. Đưa vào giỏ hàng
-    addToCart(productToCart);
-
-    // Log thử để kiểm tra xem có trường 'images' chưa
-    console.log("Đã thêm vào giỏ:", productToCart);
-  }}
-  className="action-btn"
->
-  <FiShoppingBag />
-</button>
+                      <button
+                        onClick={() => {
+                          const validImageUrl = getImageUrl(product.images);
+                          const productToCart = {
+                            ...product,
+                            images: validImageUrl 
+                          };
+                          addToCart(productToCart);
+                          console.log("Đã thêm vào giỏ:", productToCart);
+                        }}
+                        className="action-btn"
+                      >
+                        <FiShoppingBag />
+                      </button>
                     </div>
                   </div>
                   <div className="product-info">
@@ -205,7 +206,7 @@ const Home = () => {
           )}
 
           <div className="view-all-wrapper">
-            <Link to="/shop" className="view-alal-btn">Xem tất cả sản phẩm</Link>
+            <Link to="/shop" className="view-all-btn">Xem tất cả sản phẩm</Link>
           </div>
         </section>
       </div>
