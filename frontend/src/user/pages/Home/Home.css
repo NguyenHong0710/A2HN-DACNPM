@@ -166,18 +166,18 @@
 }
 
 /* =========================================
-   DANH MỤC NỔI BẬT (DÙNG ICON - TONE SANG TRỌNG)
+   2. DANH MỤC NỔI BẬT (DÙNG ICON - TONE SANG TRỌNG)
    ========================================= */
 .category-section {
   padding: 80px 20px;
-  background-color: #fafafa;
+  background-color: var(--bg-light);
   text-align: center;
 }
 
 .category-section .section-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 2.2rem;
-  color: #111;
+  font-family: var(--font-heading);
+  font-size: 36px;
+  color: var(--dark-text);
   margin-bottom: 50px;
   text-transform: uppercase;
   letter-spacing: 2px;
@@ -190,7 +190,7 @@
   position: absolute;
   width: 60px;
   height: 2px;
-  background-color: #c5a059; /* Vàng Gold */
+  background-color: var(--gold-primary);
   bottom: -15px;
   left: 50%;
   transform: translateX(-50%);
@@ -210,7 +210,7 @@
   flex-direction: column;
   align-items: center;
   text-decoration: none;
-  color: #333;
+  color: var(--dark-text);
   transition: all 0.3s ease;
 }
 
@@ -218,12 +218,12 @@
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  background-color: #fff;
+  background-color: var(--white);
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 45px;
-  color: #111;
+  color: var(--dark-text);
   border: 1px solid #eaeaea;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
   transition: all 0.4s ease;
@@ -231,7 +231,7 @@
 }
 
 .category-name {
-  font-size: 1.1rem;
+  font-size: 16px;
   font-weight: 500;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -240,18 +240,23 @@
 
 /* Hiệu ứng Hover */
 .category-item-circle:hover .circle-icon-wrapper {
-  background-color: #111;
-  color: #c5a059;
+  background-color: var(--dark-text);
+  color: var(--gold-primary);
   transform: translateY(-10px);
   box-shadow: 0 15px 25px rgba(197, 160, 89, 0.25);
+<<<<<<< Updated upstream
   border-color: #111;
+=======
+  border-color: var(--dark-text);
+>>>>>>> Stashed changes
 }
 
 .category-item-circle:hover .category-name {
-  color: #c5a059;
+  color: var(--gold-primary);
   font-weight: 600;
 }
 
+<<<<<<< Updated upstream
 /* Responsive */
 @media (max-width: 768px) {
   .category-grid-circles {
@@ -270,6 +275,8 @@
     font-size: 1.8rem;
   }
 }
+=======
+>>>>>>> Stashed changes
 /* --- 3. SẢN PHẨM NỔI BẬT --- */
 .featured-section {
   margin-top: 20px;
@@ -412,7 +419,7 @@
   margin-top: 60px;
 }
 
-.view-alal-btn {
+.view-all-btn {
   display: inline-block;
   padding: 14px 40px;
   background-color: transparent;
@@ -425,13 +432,13 @@
   transition: all 0.4s ease;
 }
 
-.view-alal-btn:hover {
+.view-all-btn:hover {
   background-color: var(--dark-text);
   color: var(--white);
 }
 
 /* ========================================================
-   RESPONSIVE DESIGN (Mobi & Tablet)
+   RESPONSIVE DESIGN (Mobile & Tablet)
 ======================================================== */
 @media (max-width: 1024px) {
   .product-grid {
@@ -442,8 +449,12 @@
 @media (max-width: 768px) {
   .hero-slider { height: 60vh; min-height: 450px; }
   .hero-title { font-size: 40px; }
+  
+  .category-section .section-title { font-size: 28px; }
   .category-grid-circles { gap: 30px; }
-  .circle-img { width: 120px; height: 120px; }
+  .circle-icon-wrapper { width: 80px; height: 80px; font-size: 35px; margin-bottom: 12px; }
+  .category-name { font-size: 14px; }
+  
   .product-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 20px;
@@ -456,10 +467,12 @@
   .hero-title { font-size: 32px; }
   .hero-subtitle { font-size: 14px; }
   .hero-content { padding: 0 20px; text-align: center; }
-  .section-title { font-size: 28px; }
+  
+  .section-title { font-size: 24px; }
   .category-grid-circles { gap: 15px; }
-  .circle-img { width: 90px; height: 90px; }
-  .category-item-circle span { font-size: 15px; }
+  .circle-icon-wrapper { width: 60px; height: 60px; font-size: 26px; }
+  .category-name { font-size: 12px; }
+  
   .product-grid {
     grid-template-columns: repeat(2, 1fr); /* Giữ 2 cột trên mobile cho đẹp */
     gap: 15px;
