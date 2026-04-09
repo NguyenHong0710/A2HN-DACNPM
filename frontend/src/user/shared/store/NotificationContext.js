@@ -17,7 +17,7 @@ export const NotificationProvider = ({ children }) => {
   
   const [accountKey, setAccountKey] = useState(() => getCurrentAccountKey());
 
-  // 🛠 TỐI ƯU: Tạm thời tắt gọi API để giải phóng băng thông cho Products
+  // 🛠 TỐI ƯU: Gọi API lấy thông báo từ Backend
   const refreshNotifications = useCallback(async () => {
     const nextAccountKey = getCurrentAccountKey();
     if (nextAccountKey === 'guest') {
@@ -25,58 +25,40 @@ export const NotificationProvider = ({ children }) => {
       return;
     }
 
-<<<<<<< HEAD
-try {
+    try {
       const token = getAuthToken();
       const res = await fetch('http://127.0.0.1:8000/api/notifications', {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json' // BẮT BUỘC PHẢI CÓ DÒNG NÀY
+          'Accept': 'application/json' 
         }
       });
       
-      // Kiểm tra nếu API không trả về 200 OK thì ném lỗi để nhảy xuống catch
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
       
       const result = await res.json();
-      
-      // Hỗ trợ cả trường hợp API trả về mảng trực tiếp hoặc bọc trong object { data: [] }
       const finalData = Array.isArray(result) ? result : (Array.isArray(result?.data) ? result.data : []);
       
-=======
-    // --- TẠM KHÓA PHẦN NÀY ĐỂ HẾT "ÍU" ---
-    /* try {
-      const token = getAuthToken();
-      const res = await fetch('http://127.0.0.1:8000/api/notifications', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await res.json();
-      const finalData = Array.isArray(result) ? result : (Array.isArray(result.data) ? result.data : []);
->>>>>>> 68c2f8a2431eabbeade62f72cd05b60c1d466ba9
       setNotifications(finalData);
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
-      setNotifications([]);
+      // Nếu lỗi thì giữ nguyên mảng cũ hoặc rỗng để không bị treo giao diện
+      setNotifications(prev => prev.length > 0 ? prev : []);
     }
-    */
-    // Trả về mảng rỗng ngay lập tức để không bị treo 1.4s
-    setNotifications(prev => prev.length > 0 ? prev : []); 
   }, [getCurrentAccountKey]);
 
-  // 🛠 TỐI ƯU: Giảm tần suất gọi hoặc tắt setInterval khi đang phát triển
+  // Tự động làm mới mỗi 60 giây
   useEffect(() => {
     refreshNotifications();
-
-    // Tăng lên 60 giây hoặc tắt hẳn để tránh request chồng chéo
     const timer = setInterval(() => {
-      // refreshNotifications(); 
+      refreshNotifications(); 
     }, 60000);
-
     return () => clearInterval(timer);
   }, [refreshNotifications]);
 
+  // Theo dõi sự thay đổi đăng nhập
   useEffect(() => {
     const handleAuthChanged = () => {
       const nextAccountKey = getCurrentAccountKey();
@@ -97,10 +79,8 @@ try {
     };
   }, [accountKey, getCurrentAccountKey, refreshNotifications]);
 
-  // Hàm thêm thông báo mới (Local Only)
   const addNotification = (title, desc) => {
     if (getCurrentAccountKey() === 'guest') return;
-
     const newNotify = {
       id: Date.now(),
       title,
@@ -109,7 +89,6 @@ try {
       unread: true,
       image: "https://cdn-icons-png.flaticon.com/512/7518/7518748.png"
     };
-    
     setNotifications((prev) => [newNotify, ...prev]);
   };
 
