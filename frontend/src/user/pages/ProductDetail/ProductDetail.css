@@ -367,7 +367,7 @@
   margin-top: 30px;
 }
 
-/* Cột Mô tả */
+/* --- CẬP NHẬT PHẦN MÔ TẢ (BOTTOM SECTION) --- */
 .pd-description {
   flex: 3;
   background: white;
@@ -375,6 +375,7 @@
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
+
 .desc-header {
   background:#D99485; 
   color: white;
@@ -382,14 +383,38 @@
   font-weight: bold;
   text-transform: uppercase;
 }
+
+/* SỬA TẠI ĐÂY: Xử lý khoảng trắng và dàn trang chữ */
 .desc-content {
   padding: 20px;
-  height: 300px; /* Chiều cao mặc định */
+  /* Thay vì để height cố định 300px dễ gây khoảng trống trắng nếu chữ ít, 
+     nên dùng max-height kết hợp với nút xem thêm */
+  max-height: 400px; 
   overflow: hidden;
   position: relative;
+  transition: max-height 0.4s ease; /* Hiệu ứng bung ra mượt hơn */
+  
+  /* Căn đều hai bên giúp chữ chạy theo dòng đẹp hơn */
+  text-align: justify; 
+  line-height: 1.6;
+  color: #444;
 }
+
+/* Xử lý các đoạn văn bản bên trong mô tả */
+.desc-content p {
+  margin-bottom: 15px; /* Khoảng cách giữa các đoạn vừa phải */
+  /* white-space: pre-line giúp giữ các dấu xuống dòng cần thiết 
+     nhưng gộp các khoảng trắng thừa */
+  white-space: pre-line; 
+}
+
 .desc-content.expanded {
-  height: auto; /* Mở rộng chiều cao */
+  max-height: none; /* Khi mở rộng sẽ hiện hết nội dung thực tế */
+}
+
+/* Loại bỏ margin cuối của phần tử cuối cùng để không bị hở chân */
+.desc-content > *:last-child {
+  margin-bottom: 0;
 }
 
 /* Giả lập hộp Mục lục */

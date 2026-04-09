@@ -155,6 +155,7 @@ class HoadonController extends Controller
     {
         DB::beginTransaction();
         try {
+<<<<<<< HEAD
             $hoadon = Hoadon::find($request->id);
 
             if (!$hoadon) {
@@ -165,6 +166,36 @@ class HoadonController extends Controller
             
             if ($newStatus) {
                 $hoadon->update(['deliveryStatus' => $newStatus]);
+=======
+            $hoadon = Hoadon::with('chiTiet')->find($request->id);
+            if (!$hoadon) return response()->json(['status' => 'error', 'message' => 'Không tìm thấy hóa đơn'], 404);
+
+            $oldStatus = $hoadon->deliveryStatus;
+            $newStatus = $request->status;
+
+            // 1. LOGIC CẬP NHẬT KHO: Chỉ chạy khi trạng thái chuyển THÀNH 'Đã giao'
+            if ($newStatus === 'Đã giao' && $oldStatus !== 'Đã giao') {
+                foreach ($hoadon->chiTiet as $item) {
+                    // Tìm sản phẩm theo tên (vì bảng chi tiết của bạn đang lưu tên) 
+                    // Hoặc tốt nhất là theo product_id nếu bạn có lưu cột đó
+                    $product = Product::where('name', $item->name)->first();
+                    
+                    if ($product) {
+                        if ($product->stock < $item->qty) {
+                            throw new Exception("Sản phẩm '{$product->name}' không đủ tồn kho để giao hàng.");
+                        }
+                        // Trừ số lượng tồn kho
+                        $product->decrement('stock', $item->qty);
+                    }
+                }
+            }
+
+            // 2. Cập nhật trạng thái hóa đơn
+            $hoadon->update(['deliveryStatus' => $newStatus]);
+
+            // 3. Xác định trạng thái vận chuyển tương ứng
+            $shippingStatus = ($newStatus === 'Đã xác nhận') ? 'Chờ lấy hàng' : $newStatus;
+>>>>>>> 68c2f8a2431eabbeade62f72cd05b60c1d466ba9
 
                 // Đồng bộ sang bảng Shipping
                 $shipping = Shipping::where('orderId', $hoadon->id)->first();
@@ -188,6 +219,7 @@ class HoadonController extends Controller
             }
 
             DB::commit();
+<<<<<<< HEAD
             return response()->json([
                 'status' => 'success', 
                 'message' => 'Cập nhật trạng thái thành công',
@@ -195,6 +227,10 @@ class HoadonController extends Controller
             ]);
 
         } catch (Exception $e) {
+=======
+            return response()->json(['status' => 'success', 'message' => 'Cập nhật trạng thái và kho hàng thành công!']);
+        } catch (\Exception $e) {
+>>>>>>> 68c2f8a2431eabbeade62f72cd05b60c1d466ba9
             DB::rollBack();
             Log::error("Update Status Error: " . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
