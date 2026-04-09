@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Auth;
 class HoadonController extends Controller
 {
     /**
-     * TẠO ĐƠN HÀNG MỚI (Dành cho trang Checkout)
+     * TẠO ĐƠN HÀNG MỚI (Dành cho trang Checkout) code moi
      */
     public function store(Request $request)
     {
