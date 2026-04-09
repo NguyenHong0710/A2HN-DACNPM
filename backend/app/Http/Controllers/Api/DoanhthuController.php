@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Hoadon; 
+use App\Models\Hoadon;
 use App\Models\Product;
 use App\Models\ChiTietHoadon;
 use Carbon\Carbon;
@@ -22,6 +22,7 @@ class DoanhthuController extends Controller
             $filter = $request->query('filter', 'Tháng');
             $now = Carbon::now();
 
+<<<<<<< HEAD
             // 1. STATS - CHỈ LẤY ĐƠN HÀNG "ĐÃ GIAO" ĐỂ TÍNH TIỀN
             $deliveredOrders = Hoadon::where('deliveryStatus', 'Đã giao')->get();
             
@@ -30,6 +31,16 @@ class DoanhthuController extends Controller
             $netRevenue = $totalGrossRevenue - $platformFee;
             
             // Đếm đơn hàng đang chờ xử lý (Chờ lấy hàng)
+=======
+            // 1. STATS - Lọc các hóa đơn không bị hủy (Khớp với deliveryStatus tiếng Việt của bạn)
+            $validOrders = Hoadon::where('deliveryStatus', '!=', 'Đã hủy')->get();
+
+            $totalGrossRevenue = (float)$validOrders->sum('amount');
+            $platformFee = $totalGrossRevenue * 0.08;
+            $netRevenue = $totalGrossRevenue - $platformFee;
+
+            // Đếm đơn hàng đang chờ (Khớp với giá trị 'Chờ lấy hàng' mặc định)
+>>>>>>> 068dc82 (feat: update dashboard)
             $pendingCount = Hoadon::where('deliveryStatus', 'Chờ lấy hàng')->count();
 
             // 2. CHART DATA (Dữ liệu biểu đồ linh hoạt)
@@ -56,6 +67,7 @@ class DoanhthuController extends Controller
                     ->selectRaw('MONTH(created_at) as time, SUM(amount) as total')
                     ->groupBy('time')->pluck('total', 'time');
                 foreach ($data as $time => $total) { $chartData[$time - 1] = (float)$total; }
+<<<<<<< HEAD
             } 
             else { 
                 // Mặc định: Lấy 30 ngày gần nhất (Filter Ngày)
@@ -75,6 +87,38 @@ class DoanhthuController extends Controller
     ->orderBy('created_at', 'desc')
     ->take(10)
     ->get()
+=======
+            }
+            elseif ($filter === 'Tháng') {
+                $daysInMonth = $now->daysInMonth;
+                for ($i = 1; $i <= $daysInMonth; $i++) { $labels[] = "Ngày $i"; }
+                $chartData = array_fill(0, $daysInMonth, 0);
+                $data = Hoadon::where('deliveryStatus', '!=', 'Đã hủy')
+                    ->whereMonth('created_at', $now->month)
+                    ->whereYear('created_at', $now->year)
+                    ->selectRaw('DAY(created_at) as time, SUM(amount) as total')
+                    ->groupBy('time')->pluck('total', 'time');
+                foreach ($data as $time => $total) { $chartData[$time - 1] = (float)$total; }
+            }
+            else { // Tuần
+                $labels = ['T2','T3','T4','T5','T6','T7','CN'];
+                $chartData = array_fill(0, 7, 0);
+                $data = Hoadon::where('deliveryStatus', '!=', 'Đã hủy')
+                    ->whereBetween('created_at', [$now->startOfWeek(), $now->endOfWeek()])
+                    ->selectRaw('DAYOFWEEK(created_at) as time, SUM(amount) as total')
+                    ->groupBy('time')->pluck('total', 'time');
+                foreach ($data as $time => $total) {
+                    $index = ($time == 1) ? 6 : $time - 2;
+                    if(isset($chartData[$index])) $chartData[$index] = (float)$total;
+                }
+            }
+
+            // 3. ĐƠN HÀNG GẦN ĐÂY
+            $recentOrders = Hoadon::with(['chiTiet.product'])
+                ->orderBy('created_at', 'desc')
+                ->take(10)
+                ->get()
+>>>>>>> 068dc82 (feat: update dashboard)
                 ->map(function ($order) {
                     return [
                         'id' => $order->id,
@@ -172,6 +216,38 @@ class DoanhthuController extends Controller
         }
     }
 
+<<<<<<< HEAD
+=======
+    public function getTopProducts()
+{
+    try {
+        $topProducts = DB::table('chi_tiet_hoadons')
+            ->join('hoadons', 'hoadons.id', '=', 'chi_tiet_hoadons.hoadon_id')
+            ->where('hoadons.deliveryStatus', '!=', 'Đã hủy')
+            ->select(
+                'chi_tiet_hoadons.name', // Lấy tên trực tiếp từ bảng chi tiết
+                DB::raw('SUM(chi_tiet_hoadons.qty) as total_sold'),
+                DB::raw('SUM(chi_tiet_hoadons.qty * chi_tiet_hoadons.price) as total_revenue')
+            )
+            ->groupBy('chi_tiet_hoadons.name') // Nhóm theo tên sản phẩm
+            ->orderByDesc('total_sold')
+            ->take(5)
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $topProducts
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Lỗi: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+>>>>>>> 068dc82 (feat: update dashboard)
     public function updateStock(Request $request)
     {
         $request->validate(['product_id' => 'required', 'quantity_added' => 'required|integer|min:1']);

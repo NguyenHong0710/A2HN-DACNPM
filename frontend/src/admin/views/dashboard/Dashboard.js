@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  CCard, CCardBody, CCol, CRow, CSpinner, 
+  CCard, CCardBody, CCol, CRow, CSpinner,
   CTable, CTableHead, CTableRow, CTableHeaderCell, CTableBody, CTableDataCell,
   CFormSelect
+  CCard, CCardBody, CCol, CRow, CSpinner,
+  CTable, CTableHead, CTableRow, CTableHeaderCell, CTableBody, CTableDataCell, CAvatar
 } from '@coreui/react'
 import { CChartLine } from '@coreui/react-chartjs'
 import CIcon from '@coreui/icons-react'
@@ -15,9 +17,16 @@ const Dashboard = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  
+
   const [dataStats, setDataStats] = useState({ total_gross: 0, pending_count: 0, net_revenue: 0 })
   const [chartData, setChartData] = useState([])
+  // Khởi tạo stats theo đúng cấu trúc Backend trả về
+  const [dataStats, setDataStats] = useState({
+    total_gross: 0,
+    pending_count: 0,
+    net_revenue: 0
+  })
+  const [chartData, setChartData] = useState(Array(12).fill(0))
   const [chartLabels, setChartLabels] = useState([])
   const [recentOrders, setRecentOrders] = useState([])
 
@@ -42,23 +51,26 @@ const Dashboard = () => {
     try {
       const res = await fetch(`${API_BASE_URL}/admin/revenue?filter=${filterType}`, {
         method: 'GET',
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         }
       })
       const result = await res.json()
+
+      const result = await res.json()
+
       if (result.status === 'success') {
         setDataStats(result.stats)
         setChartLabels(Array.isArray(result.labels) ? result.labels : Object.values(result.labels || {}));
         setChartData(Array.isArray(result.chart_data) ? result.chart_data : Object.values(result.chart_data || {}));
         setRecentOrders(result.orders || []);
       }
-    } catch (err) { 
-      console.error('Lỗi kết nối Dashboard:', err) 
-    } finally { 
-      setLoading(false) 
+    } catch (err) {
+      console.error('Lỗi kết nối Dashboard:', err)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -74,8 +86,8 @@ const Dashboard = () => {
 
     if (filterType === 'Tuần') {
       const now = new Date();
-      const dayOfWeek = now.getDay(); 
-      const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; 
+      const dayOfWeek = now.getDay();
+      const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
       const monday = new Date(now);
       monday.setDate(now.getDate() - diffToMonday);
       monday.setHours(0, 0, 0, 0);
@@ -96,7 +108,8 @@ const Dashboard = () => {
     return { labels: chartLabels, values: chartData };
   }, [chartLabels, chartData, filterType]);
 
-  const formatCurrency = (amount) => 
+  const formatCurrency = (amount) =>
+  const formatCurrency = (amount) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0)
 
   if (!isAuthenticated || loading) return (
@@ -128,6 +141,7 @@ const Dashboard = () => {
             </div>
           </CCard>
         </CCol>
+
         <CCol sm={6} lg={4}>
           <CCard className="stat-card card-o mb-4 shadow-sm">
             <div className="d-flex justify-content-between align-items-center">
@@ -157,10 +171,10 @@ const Dashboard = () => {
         <div className="p-4 d-flex justify-content-between align-items-center">
           <h5 className="fw-bold m-0"><CIcon icon={cilGraph} className="me-2 text-primary"/>Xu Hướng Doanh Thu</h5>
           <div style={{width: '180px'}}>
-            <CFormSelect 
-              size="sm" 
-              className="border-0 bg-light fw-bold" 
-              value={filterType} 
+            <CFormSelect
+              size="sm"
+              className="border-0 bg-light fw-bold"
+              value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
             >
               <option value="Ngày">Hôm nay</option>
@@ -188,16 +202,16 @@ const Dashboard = () => {
                 pointRadius: 4,
               }]
             }}
-            options={{ 
-              maintainAspectRatio: false, 
+            options={{
+              maintainAspectRatio: false,
               plugins: { legend: { display: false } },
               layout: { padding: { right: 40 } },
               scales: {
                 x: { grid: { display: false } },
-                y: { 
+                y: {
                     beginAtZero: true,
                     grid: { color: '#f1f1f1' },
-                    ticks: { callback: (v) => v.toLocaleString() } 
+                    ticks: { callback: (v) => v.toLocaleString() }
                 }
               }
             }}
