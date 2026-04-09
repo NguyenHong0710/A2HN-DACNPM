@@ -129,15 +129,34 @@ class HoadonController extends Controller
     {
         DB::beginTransaction();
         try {
-            $hoadon = Hoadon::find($request->id);
-            if (!$hoadon) return response()->json(['status' => 'error', 'message' => 'Không tìm thấy'], 404);
+            $hoadon = Hoadon::with('chiTiet')->find($request->id);
+            if (!$hoadon) return response()->json(['status' => 'error', 'message' => 'Không tìm thấy hóa đơn'], 404);
 
-            // Cập nhật trạng thái hóa đơn
-            $hoadon->update(['deliveryStatus' => $request->status]);
+            $oldStatus = $hoadon->deliveryStatus;
+            $newStatus = $request->status;
 
-            // Xác định trạng thái vận chuyển tương ứng
-            // Nếu là 'Đã xác nhận' thì bên vận chuyển là 'Chờ lấy hàng', các trạng thái khác giữ nguyên theo request
-            $shippingStatus = ($request->status === 'Đã xác nhận') ? 'Chờ lấy hàng' : $request->status;
+            // 1. LOGIC CẬP NHẬT KHO: Chỉ chạy khi trạng thái chuyển THÀNH 'Đã giao'
+            if ($newStatus === 'Đã giao' && $oldStatus !== 'Đã giao') {
+                foreach ($hoadon->chiTiet as $item) {
+                    // Tìm sản phẩm theo tên (vì bảng chi tiết của bạn đang lưu tên) 
+                    // Hoặc tốt nhất là theo product_id nếu bạn có lưu cột đó
+                    $product = Product::where('name', $item->name)->first();
+                    
+                    if ($product) {
+                        if ($product->stock < $item->qty) {
+                            throw new Exception("Sản phẩm '{$product->name}' không đủ tồn kho để giao hàng.");
+                        }
+                        // Trừ số lượng tồn kho
+                        $product->decrement('stock', $item->qty);
+                    }
+                }
+            }
+
+            // 2. Cập nhật trạng thái hóa đơn
+            $hoadon->update(['deliveryStatus' => $newStatus]);
+
+            // 3. Xác định trạng thái vận chuyển tương ứng
+            $shippingStatus = ($newStatus === 'Đã xác nhận') ? 'Chờ lấy hàng' : $newStatus;
 
             $shipping = Shipping::where('orderId', $hoadon->id)->first();
             if ($shipping) {
@@ -156,7 +175,7 @@ class HoadonController extends Controller
             }
 
             DB::commit();
-            return response()->json(['status' => 'success', 'message' => 'Cập nhật thành công!']);
+            return response()->json(['status' => 'success', 'message' => 'Cập nhật trạng thái và kho hàng thành công!']);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);

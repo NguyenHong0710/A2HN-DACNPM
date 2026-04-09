@@ -221,9 +221,7 @@ const Invoice = () => {
                             >
                                 <option value="Chờ xử lý">Chờ xử lý</option>
                                 <option value="Đã xác nhận">Đã xác nhận</option> 
-                                <option value="Đang giao">Đang giao</option>
-                                <option value="Đã giao">Đã giao</option>
-                                <option value="Hủy đơn">Hủy đơn</option>
+                                
                             </select>
 
                             <CTooltip content="Chi tiết"><CButton color="link" className="p-1" onClick={() => openInvoiceDetail(item)}><CIcon icon={cilInfo} /></CButton></CTooltip>

@@ -4,7 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use App\Models\ActivityLog;
-use App\Models\Product; // Import để lấy thông tin sản phẩm
+use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
 
 class LogUserActivity
@@ -13,16 +13,18 @@ class LogUserActivity
     {
         $response = $next($request);
 
-        // Chỉ log khi request thành công (status 2xx)
-        if ($response->status() >= 200 && $response->status() < 300) {
+        // CHỈ LOG KHI ĐÃ ĐĂNG NHẬP VÀ TRẠNG THÁI THÀNH CÔNG
+        if (Auth::check() && $response->status() >= 200 && $response->status() < 300) {
+            
             $user = Auth::user();
             $actionInfo = $this->parseAction($request);
 
             ActivityLog::create([
-                'user_id'     => $user ? $user->id : null,
-                'user_name'   => $user ? $user->name : 'Khách vãng lai',
+                'user_id'     => $user->id,
+                'user_name'   => $user->name,
                 'action'      => $actionInfo['action'],
-                'target_name' => $actionInfo['target_name'],
+                // Luôn ưu tiên lưu Email của User vào đây để Frontend hiển thị
+                'target_name' => $user->email, 
                 'method'      => $request->method(),
                 'url'         => $request->path(),
                 'ip_address'  => $request->ip(),
@@ -32,33 +34,42 @@ class LogUserActivity
 
         return $response;
     }
+    public function cleanup()
+{
+    try {
+        // Cách 1: Xóa sạch bảng và reset ID về 1 (Khuyên dùng nếu muốn xóa hết)
+        \App\Models\ActivityLog::truncate();
 
+        // Cách 2: Nếu truncate bị lỗi do khóa ngoại, dùng:
+        // \App\Models\ActivityLog::query()->delete();
+
+        return response()->json([
+            'message' => 'Toàn bộ nhật ký hệ thống đã được xóa sạch!'
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Lỗi khi xóa nhật ký: ' . $e->getMessage()
+        ], 500);
+    }
+}
     private function parseAction($request)
     {
         $action = "Truy cập hệ thống";
-        $targetName = null;
 
-        // 1. Log xem sản phẩm (Dựa trên route chi tiết sản phẩm)
         if ($request->is('api/products/*') && $request->isMethod('get')) {
-            $id = $request->segment(3); // Lấy ID từ URL api/products/{id}
+            $id = $request->segment(3); 
             $product = Product::find($id);
-            if ($product) {
-                $action = "Xem chi tiết sản phẩm";
-                $targetName = $product->name; // Lấy từ cột 'name' bạn chụp trong bảng products
-            }
+            if ($product) $action = "Xem sản phẩm: " . $product->name;
         }
 
-        // 2. Log tìm kiếm
         if ($request->is('api/products/search')) {
-            $action = "Tìm kiếm sản phẩm";
-            $targetName = "Từ khóa: " . $request->query('q');
+            $action = "Tìm kiếm: " . $request->query('q');
         }
 
-        // 3. Log đặt hàng (Dựa trên bảng chi_tiet_hoadons của bạn)
         if ($request->is('api/orders') && $request->isMethod('post')) {
             $action = "Thực hiện đặt hàng";
         }
 
-        return ['action' => $action, 'target_name' => $targetName];
+        return ['action' => $action];
     }
 }
