@@ -79,28 +79,45 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
-    try {
-      const authToken = getAuthToken();
-      const res = await fetch(`${API_BASE_URL}/profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify(formData)
-      });
+  try {
+    const authToken = getAuthToken();
+    const res = await fetch(`${API_BASE_URL}/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify(formData)
+    });
 
-      if (res.ok) {
-        setUser({ ...user, ...formData });
-        setIsEditing(false);
-        alert('Cập nhật hồ sơ thành công!');
+    const result = await res.json();
+
+    if (res.ok) {
+      setUser({ ...user, ...formData });
+      setIsEditing(false);
+      alert('Cập nhật hồ sơ thành công!');
+    } else {
+      // TRƯỜNG HỢP LỖI VALIDATION (Số điện thoại, email...)
+      if (res.status === 422) {
+        // Laravel trả về lỗi trong result.errors (ví dụ: { phone: ["Số điện thoại không hợp lệ"] })
+        const validationErrors = result.errors;
+        let errorMessage = "Cập nhật thất bại:\n";
+        
+        // Duyệt qua các lỗi để nối thành chuỗi thông báo
+        Object.keys(validationErrors).forEach(field => {
+          errorMessage += `- ${validationErrors[field].join(', ')}\n`;
+        });
+        
+        alert(errorMessage);
       } else {
-        alert('Cập nhật thất bại. Vui lòng kiểm tra lại!');
+        alert(result.message || 'Cập nhật thất bại. Quý khách vui lòng kiểm tra lại!');
       }
-    } catch (err) {
-      alert('Lỗi kết nối server!');
     }
-  };
+  } catch (err) {
+    console.error(err);
+    alert('Lỗi kết nối server!');
+  }
+};
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -280,9 +297,20 @@ const Profile = () => {
 
               {isEditing && (
   <div className="luxury-profile-actions">
-    {/* Nút Hủy trước (thông thường Hủy bên trái, Lưu bên phải) */}
-    <button className="luxury-profile-btn btn-cancel-luxury" onClick={() => setIsEditing(false)}>Hủy</button>
-    <button className="luxury-profile-btn btn-save-luxury">Lưu thay đổi</button>
+    <button 
+      className="luxury-profile-btn btn-cancel-luxury" 
+      onClick={() => setIsEditing(false)}
+    >
+      Hủy
+    </button>
+    
+    {/* THÊM onClick={handleSave} VÀO ĐÂY */}
+    <button 
+      className="luxury-profile-btn btn-save-luxury" 
+      onClick={handleSave}
+    >
+      Lưu thay đổi
+    </button>
   </div>
 )}
             </div>

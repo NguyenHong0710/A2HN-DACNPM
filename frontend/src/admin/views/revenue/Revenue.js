@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   CCard, CCardBody, CCol, CRow, CTable, CTableBody, CTableHead, CTableHeaderCell, CTableRow, CTableDataCell,
   CButton, CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter, CFormSelect, CFormInput, CFormLabel, CSpinner, CAvatar
@@ -55,8 +55,11 @@ const Revenue = () => {
         if (revenueData.status === 'success') {
             setInvoices(revenueData.orders || []); 
             setStats(revenueData.stats);
-            setChartData(revenueData.chart_data);
-            setChartLabels(revenueData.labels);
+            const labels = Array.isArray(revenueData.labels) ? revenueData.labels : Object.values(revenueData.labels || {});
+            const data = Array.isArray(revenueData.chart_data) ? revenueData.chart_data : Object.values(revenueData.chart_data || {});
+            
+            setChartLabels(labels);
+            setChartData(data);
         }
         if (inventoryData.status === 'success') setInventory(inventoryData.data);
         if (topProdData.status === 'success') setTopProducts(topProdData.data);
@@ -66,6 +69,56 @@ const Revenue = () => {
         setLoading(false); 
     }
   }
+
+  /**
+   * LOGIC XỬ LÝ LỌC DỮ LIỆU BIỂU ĐỒ CHÍNH XÁC
+   */
+  const processedChartData = useMemo(() => {
+    if (!chartLabels || chartLabels.length === 0) return { labels: [], values: [] };
+
+    // 1. Xử lý cho "Hôm nay" (Ngày)
+    if (filterType === 'Ngày') {
+      return {
+        labels: chartLabels.slice(-1),
+        values: chartData.slice(-1)
+      };
+    }
+
+    // 2. Xử lý cho "Tuần này" (Từ Thứ Hai đến hiện tại)
+    if (filterType === 'Tuần') {
+      const now = new Date();
+      const dayOfWeek = now.getDay(); 
+      const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; 
+      
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - diffToMonday);
+      monday.setHours(0, 0, 0, 0);
+
+      const mondayString = `${String(monday.getDate()).padStart(2, '0')}/${String(monday.getMonth() + 1).padStart(2, '0')}`;
+      const mondayIdx = chartLabels.findIndex(label => label === mondayString);
+      
+      if (mondayIdx !== -1) {
+        return {
+          labels: chartLabels.slice(mondayIdx),
+          values: chartData.slice(mondayIdx)
+        };
+      }
+      return { labels: chartLabels.slice(-7), values: chartData.slice(-7) };
+    }
+
+    // 3. Xử lý cho "Tháng này"
+    if (filterType === 'Tháng') {
+      const firstDayIdx = chartLabels.findIndex(label => label.startsWith('01/'));
+      if (firstDayIdx !== -1) {
+        return {
+          labels: chartLabels.slice(firstDayIdx),
+          values: chartData.slice(firstDayIdx)
+        };
+      }
+    }
+
+    return { labels: chartLabels, values: chartData };
+  }, [chartLabels, chartData, filterType]);
 
   const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(amount) || 0)
 
@@ -120,7 +173,6 @@ const Revenue = () => {
         .badge-soft { padding: 6px 12px; border-radius: 10px; font-weight: 700; font-size: 11px; }
       `}</style>
 
-      {/* --- WIDGETS --- */}
       <CRow className="mb-4">
         <CCol sm={6} lg={4}>
           <CCard className="glass-card mb-4 p-4 border-start border-primary border-5">
@@ -157,7 +209,6 @@ const Revenue = () => {
         </CCol>
       </CRow>
 
-      {/* --- BIỂU ĐỒ & TOP SẢN PHẨM --- */}
       <CRow className="mb-4">
         <CCol lg={8} className="mb-4">
           <CCard className="glass-card h-100 overflow-hidden">
@@ -176,17 +227,29 @@ const Revenue = () => {
               <CChartLine
                 style={{ height: '300px' }}
                 data={{
-                  labels: chartLabels,
+                  labels: processedChartData.labels,
                   datasets: [{
                     label: 'Doanh thu',
                     backgroundColor: 'rgba(78, 115, 223, 0.05)',
                     borderColor: '#4e73df',
-                    data: chartData,
+                    data: processedChartData.values,
                     tension: 0.4,
-                    fill: true
+                    fill: true,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#4e73df',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
                   }]
                 }}
-                options={{ maintainAspectRatio: false, plugins: { legend: { display: false } } }}
+                options={{ 
+                  maintainAspectRatio: false, 
+                  plugins: { legend: { display: false } },
+                  layout: { padding: { right: 40 } },
+                  scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true }
+                  }
+                }}
               />
             </CCardBody>
           </CCard>
@@ -198,7 +261,7 @@ const Revenue = () => {
               <h5 className="fw-bold m-0"><CIcon icon={cilArrowTop} className="me-2 text-success"/>Bán Chạy Nhất</h5>
             </div>
             <CCardBody className="p-0 overflow-auto" style={{maxHeight: '340px'}}>
-               <CTable hover className="table-custom mb-0">
+                <CTable hover className="table-custom mb-0">
                   <CTableBody>
                     {topProducts.map((prod, idx) => (
                       <CTableRow key={idx}>
@@ -215,13 +278,12 @@ const Revenue = () => {
                       </CTableRow>
                     ))}
                   </CTableBody>
-               </CTable>
+                </CTable>
             </CCardBody>
           </CCard>
         </CCol>
       </CRow>
 
-      {/* --- TÌNH TRẠNG KHO --- */}
       <CCard className="glass-card mb-4">
         <div className="p-4 d-flex justify-content-between align-items-center border-bottom">
           <h5 className="fw-bold m-0"><CIcon icon={cilStorage} className="me-2 text-info"/>Tình Trạng Kho Hàng</h5>
@@ -236,6 +298,7 @@ const Revenue = () => {
                 <CTableHeaderCell className="ps-4">ID</CTableHeaderCell>
                 <CTableHeaderCell>Tên Sản Phẩm</CTableHeaderCell>
                 <CTableHeaderCell className="text-center">Tồn Kho</CTableHeaderCell>
+                <CTableHeaderCell className="text-center text-primary">Đã Bán</CTableHeaderCell>
                 <CTableHeaderCell className="text-center">Trạng Thái</CTableHeaderCell>
                 <CTableHeaderCell className="text-end pe-4">Thao Tác</CTableHeaderCell>
               </CTableRow>
@@ -248,6 +311,7 @@ const Revenue = () => {
                     <CTableDataCell className="ps-4 text-muted">#{item.id}</CTableDataCell>
                     <CTableDataCell className="fw-bold">{item.name}</CTableDataCell>
                     <CTableDataCell className="text-center fw-bold">{item.stock}</CTableDataCell>
+                    <CTableDataCell className="text-center fw-bold text-primary">{item.sold || 0}</CTableDataCell>
                     <CTableDataCell className="text-center">
                       <span className={`badge-soft text-${status.color}`} style={{backgroundColor: status.bg}}>{status.label}</span>
                     </CTableDataCell>
@@ -262,20 +326,21 @@ const Revenue = () => {
         </CCardBody>
       </CCard>
 
-      {/* --- GIAO DỊCH GẦN ĐÂY --- */}
       <CCard className="glass-card mb-4">
         <div className="p-4 border-bottom bg-white">
           <h5 className="fw-bold m-0"><CIcon icon={cilList} className="me-2 text-primary"/>Giao Dịch Đã Hoàn Thành</h5>
         </div>
         <CCardBody className="p-0">
           <CTable hover responsive className="table-custom mb-0">
-            <CTableHead><CTableRow>
+            <CTableHead>
+              <CTableRow>
                 <CTableHeaderCell className="ps-4">Mã Đơn</CTableHeaderCell>
                 <CTableHeaderCell>Thời Gian</CTableHeaderCell>
                 <CTableHeaderCell>Tổng Tiền</CTableHeaderCell>
                 <CTableHeaderCell>Thực Nhận (92%)</CTableHeaderCell>
                 <CTableHeaderCell className="text-end pe-4">Chi Tiết</CTableHeaderCell>
-            </CTableRow></CTableHead>
+              </CTableRow> 
+            </CTableHead>
             <CTableBody>
               {invoices.map((item) => (
                 <CTableRow key={item.id}>
@@ -295,7 +360,6 @@ const Revenue = () => {
         </CCardBody>
       </CCard>
 
-      {/* MODAL CHI TIẾT DÒNG TIỀN */}
       <CModal visible={detailModal} onClose={() => setDetailModal(false)} size="lg">
         <CModalHeader closeButton><CModalTitle>Phân Tích Dòng Tiền Đơn #{selectedInvoice?.id}</CModalTitle></CModalHeader>
         <CModalBody>
@@ -320,15 +384,11 @@ const Revenue = () => {
                 <span className="fw-bold">Số dư thực cộng vào ví:</span>
                 <span className="fw-bold text-success fs-4">{formatCurrency(selectedInvoice.amount * 0.92)}</span>
               </div>
-              <div className="mt-4 small text-muted text-center italic">
-                * Tiền đã được cộng vào số dư khả dụng sau khi đơn hàng hoàn tất.
-              </div>
             </div>
           )}
         </CModalBody>
       </CModal>
 
-      {/* MODAL NHẬP HÀNG */}
       <CModal visible={importModal} onClose={() => setImportModal(false)}>
         <CModalHeader closeButton><CModalTitle>Phiếu Nhập Kho Nhanh</CModalTitle></CModalHeader>
         <CModalBody>
@@ -360,7 +420,6 @@ const Revenue = () => {
         </CModalFooter>
       </CModal>
 
-      {/* MODAL CHI TIẾT KHO HÀNG (PHẦN BẠN CÒN THIẾU) */}
       <CModal visible={inventoryModal} onClose={() => setInventoryModal(false)}>
         <CModalHeader closeButton>
           <CModalTitle>Thông Tin Kho: {selectedInventoryItem?.name}</CModalTitle>
@@ -381,6 +440,10 @@ const Revenue = () => {
                   <span className="text-muted">Số lượng tồn:</span>
                   <span className="fw-bold">{selectedInventoryItem.stock} sản phẩm</span>
                 </div>
+                <div className="d-flex justify-content-between mb-2">
+                  <span className="text-muted">Đã bán ra:</span>
+                  <span className="fw-bold text-primary">{selectedInventoryItem.sold || 0} sản phẩm</span>
+                </div>
                 <div className="d-flex justify-content-between align-items-center">
                   <span className="text-muted">Tình trạng:</span>
                   <span className={`badge-soft text-${getStockStatus(selectedInventoryItem.stock).color}`} 
@@ -388,11 +451,6 @@ const Revenue = () => {
                     {getStockStatus(selectedInventoryItem.stock).label}
                   </span>
                 </div>
-              </div>
-
-              <div className="mt-4 small text-muted border-top pt-3">
-                <CIcon icon={cilInfo} className="me-1" size="sm"/> 
-                Lưu ý: Số lượng kho được cập nhật tự động khi có đơn hàng mới hoặc nhập hàng thủ công.
               </div>
             </div>
           )}

@@ -1,41 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FaCommentDots, FaTimes, FaPaperPlane, FaGem } from 'react-icons/fa';
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { getAuthToken } from '../../../utils/authStorage';
 import './Chatbox.css';
 
-// Khởi tạo Gemini với API Key của bạn
-const genAI = new GoogleGenerativeAI("YOUR_GEMINI_API_KEY_HERE");
+// Vẫn dùng Key của bạn để test
+const genAI = new GoogleGenerativeAI("AIzaSyBfECCyyuljulWDSMluNUKoAiNv3oUKeEU");
 
 const Chatbox = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isBotReady, setIsBotReady] = useState(false); // Trạng thái kiểm tra bot sẵn sàng
   const messagesEndRef = useRef(null);
 
-  // Khởi tạo tin nhắn chào mừng
   const [messages, setMessages] = useState([
-    { id: 1, text: 'Kính chào Quý khách đến với Lumina Jewelry. Tôi là Gemini, chuyên gia tư vấn kim hoàn. Quý khách đang quan tâm đến dòng trang sức hay loại đá quý nào ạ?', sender: 'bot' }
+    { id: 1, text: 'Kính chào Quý khách đến với Lumina Jewelry. Tôi là chuyên gia tư vấn kim hoàn. Quý khách đang quan tâm đến dòng trang sức hay loại đá quý nào ạ?', sender: 'bot' }
   ]);
 
-  // Lưu trữ lịch sử chat để Gemini hiểu ngữ cảnh
   const [chatSession, setChatSession] = useState(null);
-
-  // Khởi tạo phiên chat khi component mount
-  useEffect(() => {
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      systemInstruction: "Bạn là chuyên gia tư vấn cao cấp của thương hiệu trang sức Lumina Jewelry. Nhiệm vụ của bạn là trả lời TẤT CẢ câu hỏi của khách hàng về trang sức, kim cương, vàng, đá quý và phối đồ. Phong cách: Sang trọng, lịch thiệp, am hiểu sâu sắc. Luôn gọi người dùng là 'Quý khách'. Nếu khách hỏi mua, hãy hướng dẫn họ thêm vào giỏ hàng hoặc xem bộ sưu tập. Tuyệt đối không nói 'liên hệ vendor' hay 'đang gián đoạn', hãy tự mình giải quyết vấn đề của khách.",
-    });
-
-    const chat = model.startChat({
-      history: [
-        { role: "user", parts: [{ text: "Xin chào" }] },
-        { role: "model", parts: [{ text: "Kính chào Quý khách. Tôi là chuyên gia tư vấn từ Lumina Jewelry, rất hân hạnh được hỗ trợ bạn tìm kiếm những tuyệt tác trang sức hoàn mỹ nhất." }] },
-      ],
-    });
-    setChatSession(chat);
-  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -45,37 +27,103 @@ const Chatbox = () => {
     if (isOpen) scrollToBottom();
   }, [messages, isOpen, isTyping]);
 
+  useEffect(() => {
+    const initializeChat = async () => {
+      let contextData = "";
+
+      // Đặt thời gian chờ tối đa cho API là 3 giây để không làm chậm bot
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); 
+
+      // 1. TÍCH HỢP DỮ LIỆU SẢN PHẨM TỪ LARAVEL (CÓ TIMEOUT)
+      try {
+        const productRes = await fetch('http://127.0.0.1:8000/api/products', { 
+          signal: controller.signal 
+        }); 
+        clearTimeout(timeoutId); // Nếu load nhanh hơn 3s thì hủy bộ đếm giờ
+        
+        if (productRes.ok) {
+          const productsResponse = await productRes.json();
+          const productList = productsResponse.data || productsResponse; 
+          // Chỉ lấy tối đa 10 sản phẩm để AI đọc cực nhanh
+          const productString = productList.slice(0, 10).map(p => `- Tên: ${p.name || p.title} | Giá: ${p.price} VNĐ`).join('\n');
+          
+          contextData += `\nDANH SÁCH SẢN PHẨM HIỆN CÓ CỦA LUMINA:\n${productString}\n`;
+        }
+      } catch (error) {
+        console.warn("API load quá 3s hoặc lỗi, chuyển sang dữ liệu dự phòng lập tức!");
+        contextData += `\nDANH SÁCH SẢN PHẨM HIỆN CÓ CỦA LUMINA:\n- Nhẫn Kim Cương Solitaire 18K | Giá: 25,000,000 VNĐ\n- Dây chuyền Vàng Trắng đính Sapphire | Giá: 18,500,000 VNĐ\n- Bông tai Ngọc Trai Akoya | Giá: 12,000,000 VNĐ\n`;
+      }
+
+      // Khai báo tạm thông tin đơn hàng (Sau này bạn có thể gọi API từ Laravel để lấy đơn hàng thật)
+      const userOrderInfo = "Khách hàng hiện chưa đăng nhập hoặc chưa có đơn hàng.";
+
+      // 2. NHỒI DỮ LIỆU VÀO AI PROMPT
+      const model = genAI.getGenerativeModel({ 
+          model: "gemini-flash-latest",
+          systemInstruction: `Bạn là chuyên gia tư vấn của Lumina Jewelry. Luôn gọi người dùng là 'Quý khách'.
+          
+          THÔNG TIN KHÁCH HÀNG HIỆN TẠI: ${userOrderInfo}
+          
+          ${contextData}
+          
+          Nhiệm vụ: Dựa vào thông tin trên để tư vấn ngắn gọn, nhanh chóng. Nếu khách hỏi 'đơn hàng của tôi đâu', hãy dùng thông tin đơn hàng ở trên để trả lời. Nếu khách hỏi sản phẩm, hãy ưu tiên giới thiệu các sản phẩm trong danh sách hiện có.`,
+        });
+
+      const chat = model.startChat({
+        history: [
+          { role: "user", parts: [{ text: "Xin chào" }] },
+          { role: "model", parts: [{ text: "Kính chào Quý khách. Tôi là chuyên gia tư vấn từ Lumina Jewelry." }] },
+        ],
+      });
+      
+      setChatSession(chat);
+      setIsBotReady(true); // Báo hiệu bot đã khởi động xong
+    };
+
+    initializeChat();
+  }, []);
+
   const handleSend = async () => {
-    if (inputValue.trim() === '' || !chatSession) return;
+    if (inputValue.trim() === '') return;
+
+    // Chặn người dùng chat nếu bot chưa khởi động xong do mạng
+    if (!isBotReady || !chatSession) {
+      setMessages(prev => [...prev, { id: Date.now(), text: "Hệ thống đang tải dữ liệu sản phẩm, Quý khách vui lòng đợi 1-2 giây rồi gửi lại nhé!", sender: 'bot' }]);
+      return;
+    }
 
     const userText = inputValue.trim();
     const newUserMsg = { id: Date.now(), text: userText, sender: 'user' };
     
     setMessages(prev => [...prev, newUserMsg]);
     setInputValue('');
-    setIsTyping(true);
+    setIsTyping(true); 
 
     try {
-      // Gửi tin nhắn đến Gemini và đợi phản hồi
-      const result = await chatSession.sendMessage(userText);
-      const response = await result.response;
-      const aiText = response.text();
+      const botMsgId = Date.now() + 1;
+      setMessages(prev => [...prev, { id: botMsgId, text: '', sender: 'bot' }]);
+
+      // Đổ luồng dữ liệu cực nhanh
+      const result = await chatSession.sendMessageStream(userText);
+      setIsTyping(false); 
       
-      setMessages(prev => [...prev, { 
-        id: Date.now() + 1, 
-        text: aiText, 
-        sender: 'bot' 
-      }]);
+      let fullText = '';
+      for await (const chunk of result.stream) {
+        fullText += chunk.text();
+        setMessages(prev => prev.map(msg => 
+          msg.id === botMsgId ? { ...msg, text: fullText } : msg
+        ));
+      }
 
     } catch (err) {
       console.error("Gemini Error:", err);
+      setIsTyping(false);
       setMessages(prev => [...prev, { 
         id: Date.now() + 1, 
-        text: "Lumina chân thành cáo lỗi. Có một chút vấn đề về kết nối, Quý khách vui lòng nhắc lại câu hỏi được không ạ?", 
+        text: "Xin lỗi Quý khách, mạng đang gặp sự cố nhỏ. Vui lòng thử lại.", 
         sender: 'bot' 
       }]);
-    } finally {
-      setIsTyping(false);
     }
   };
 
@@ -88,7 +136,7 @@ const Chatbox = () => {
               <FaGem className="gem-icon" />
               <span>Lumina AI Expert</span>
             </div>
-            <FaTimes className="chat-close-btn" onClick={() => setIsOpen(false)} />
+            <FaTimes className="chat-close-btn" style={{cursor: 'pointer'}} onClick={() => setIsOpen(false)} />
           </div>
           
           <div className="chat-body">
@@ -114,12 +162,13 @@ const Chatbox = () => {
             <input 
               type="text" 
               className="chat-input"
-              placeholder="Hỏi về kim cương, vàng 18k..." 
+              placeholder={isBotReady ? "Hỏi về sản phẩm, đơn hàng..." : "Đang kết nối hệ thống..."} 
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              disabled={!isBotReady} // Khóa ô nhập khi chưa sẵn sàng
             />
-            <button className="chat-send-btn" onClick={handleSend} disabled={isTyping}>
+            <button className="chat-send-btn" onClick={handleSend} disabled={isTyping || !isBotReady}>
               <FaPaperPlane />
             </button>
           </div>

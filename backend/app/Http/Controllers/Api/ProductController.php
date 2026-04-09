@@ -6,99 +6,89 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB; // Thêm DB để xử lý query phức tạp
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class ProductController extends Controller
 {
     /**
-     * 1. LẤY DANH SÁCH SẢN PHẨM (Sửa lỗi lọc Category & Khôi phục Best-seller)
+     * 1. LẤY DANH SÁCH SẢN PHẨM (Đã sửa lỗi thiếu cột cho Admin)
      */
     public function index(Request $request)
     {
-        $sortBy = $request->query('sort_by', 'newest');
-        $category = $request->query('category', 'All'); 
-        $query = Product::query();
+        $sortBy = $request->query('sort_by', 'all');
+        $sortOrder = $request->query('sort_order', 'default');
+        $category = $request->query('category', 'All');
+        $perPage = $request->query('per_page', 9); 
+        $minPrice = $request->query('min_price', 0); 
+        $maxPrice = $request->query('max_price', 100000000); // Tăng hạn mức giá tối đa
 
-        // --- BƯỚC 1: LỌC THEO CATEGORY (Sửa lỗi bạn gặp phải) ---
+        // CẬP NHẬT: Thêm đầy đủ các cột cần thiết để trang quản lý không bị mất dữ liệu
+        $query = Product::select([
+            'products.id', 
+            'products.name', 
+            'products.price', 
+            'products.images', 
+            'products.category', 
+            'products.status', 
+            'products.stock',       // Cột kho
+            'products.unit',        // Cột đơn vị
+            'products.description', // Cột mô tả
+            'products.origin',      // Cột xuất xứ
+            'products.created_at'
+        ]);
+
+        // 1. Lọc theo Category
         if ($category !== 'All') {
-            $query->where('category', $category);
+            $query->where('products.category', $category);
         }
 
-        // --- BƯỚC 2: XỬ LÝ CÁC TRƯỜNG HỢP SORT/FILTER ---
-        
-        // Trường hợp 1: Lọc theo giá
-        if ($sortBy === 'price') {
-            $minPrice = $request->query('min_price', 0);
-            $maxPrice = $request->query('max_price', 5000000);
+        // 2. Lọc theo Khoảng giá
+        $query->whereBetween('products.price', [(float)$minPrice, (float)$maxPrice]);
 
-            $query->where('price', '>=', (float)$minPrice)
-                  ->where('price', '<=', (float)$maxPrice)
-                  ->orderBy('price', 'asc');
-        } 
-        
-        // Trường hợp 2: Bán chạy nhất (Khôi phục lại chuẩn danh sách groupBy của bạn)
-        elseif ($sortBy === 'best-seller') {
-            $query->leftJoin('chi_tiet_hoadons', 'products.name', '=', 'chi_tiet_hoadons.name')
-                  ->select(
-                      'products.id',
-                      'products.name',
-                      'products.price',
-                      'products.images',
-                      'products.category',
-                      'products.status',
-                      'products.created_at',
-                      DB::raw('SUM(IFNULL(chi_tiet_hoadons.qty, 0)) as total_sold')
-                  )
+        // 3. Xử lý logic Best-seller
+        if ($sortBy === 'best-seller') {
+            $query->join('chi_tiet_hoadons', 'products.name', '=', 'chi_tiet_hoadons.name')
+                  ->join('shippings', 'chi_tiet_hoadons.hoadon_id', '=', 'shippings.orderId')
+                  ->selectRaw('SUM(chi_tiet_hoadons.qty) as total_sold')
+                  ->where('shippings.status', 'Đã giao') 
+                  // Group by tất cả các cột đã select để tránh lỗi SQL Strict Mode
                   ->groupBy(
-                      'products.id',
-                      'products.name',
-                      'products.price',
-                      'products.images',
-                      'products.category',
-                      'products.status',
-                      'products.created_at'
+                      'products.id', 'products.name', 'products.price', 'products.images', 
+                      'products.category', 'products.status', 'products.stock', 
+                      'products.unit', 'products.description', 'products.origin', 'products.created_at'
                   )
-                  ->having('total_sold', '>', 0) 
-                  ->orderBy('total_sold', 'desc');
-        }
-        
-        // Trường hợp 3: Mặc định / Mới nhất
+                  ->orderByDesc('total_sold')
+                  ->having('total_sold', '>', 0);
+        } 
+        elseif ($sortOrder === 'price-asc') {
+            $query->orderBy('products.price', 'asc');
+        } 
+        elseif ($sortOrder === 'price-desc') {
+            $query->orderBy('products.price', 'desc');
+        } 
         else {
-            $query->orderBy('created_at', 'desc');
+            if ($sortBy !== 'best-seller') {
+                $query->latest('products.created_at');
+            }
         }
 
-        // --- BƯỚC 3: PHÂN TRANG & XỬ LÝ ẢNH ---
-        $perPage = 15;
-        $paginatedData = $query->paginate($perPage);
-
-        $paginatedData->getCollection()->transform(function ($product) {
-            if (is_array($product->images)) {
-                $product->images = array_map(function ($img) {
-                    if (str_starts_with($img, 'http')) return $img;
-                    $path = str_replace('storage/', '', $img);
-                    return url('storage/' . $path);
-                }, $product->images);
-            } else {
-                $product->images = [];
-            }
-            return $product;
-        });
+        $paginatedData = $query->paginate($perPage)->withQueryString();
 
         return response()->json([
             'status' => 'success',
-            'active_category' => $category,
+            'data' => $paginatedData->items(),
             'pagination' => [
                 'total' => $paginatedData->total(),
-                'per_page' => $paginatedData->perPage(),
                 'current_page' => $paginatedData->currentPage(),
                 'last_page' => $paginatedData->lastPage(),
-            ],
-            'data' => $paginatedData->items()
+                'per_page' => (int)$paginatedData->perPage(),
+            ]
         ]);
     }
+
     /**
-     * 2. LẤY CHI TIẾT MỘT SẢN PHẨM (Giữ nguyên)
+     * 2. LẤY CHI TIẾT MỘT SẢN PHẨM
      */
     public function show($id)
     {
@@ -110,14 +100,6 @@ class ProductController extends Controller
                     'status' => 'error',
                     'message' => 'Không tìm thấy sản phẩm'
                 ], 404);
-            }
-
-            if (is_array($product->images)) {
-                $product->images = array_map(function ($img) {
-                    return str_starts_with($img, 'http') ? $img : url($img);
-                }, $product->images);
-            } else {
-                $product->images = [];
             }
 
             return response()->json([
@@ -134,7 +116,30 @@ class ProductController extends Controller
     }
 
     /**
-     * 3. THÊM SẢN PHẨM (Giữ nguyên)
+     * 3. TÌM KIẾM SẢN PHẨM
+     */
+    public function search(Request $request)
+    {
+        $searchTerm = $request->query('q');
+
+        if (!$searchTerm) {
+            return response()->json(['status' => 'success', 'data' => []]);
+        }
+
+        $products = Product::where('name', 'LIKE', "%{$searchTerm}%")
+            ->latest()
+            ->limit(20) 
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'count' => $products->count(),
+            'data' => $products
+        ]);
+    }
+
+    /**
+     * 4. THÊM SẢN PHẨM
      */
     public function store(Request $request)
     {
@@ -151,7 +156,6 @@ class ProductController extends Controller
         ]);
 
         $imagePaths = [];
-
         if ($request->hasFile('new_images')) {
             foreach ($request->file('new_images') as $image) {
                 $path = $image->store('products', 'public');
@@ -160,7 +164,7 @@ class ProductController extends Controller
         }
 
         $product = Product::create(array_merge($validated, [
-            'images' => $imagePaths,
+            'images' => $imagePaths, // Lưu mảng path (Model nên có casts images => array)
             'approval_status' => 'approved',
             'is_banned' => false
         ]));
@@ -173,7 +177,7 @@ class ProductController extends Controller
     }
 
     /**
-     * 4. CẬP NHẬT SẢN PHẨM (Giữ nguyên)
+     * 5. CẬP NHẬT SẢN PHẨM
      */
     public function update(Request $request, $id)
     {
@@ -190,11 +194,10 @@ class ProductController extends Controller
             'status' => 'required|string',
         ]);
 
-        $imagePaths = $request->input('existing_images', []);
-
+        $existingImages = $request->input('existing_images', []);
         $imagePaths = array_map(function($url) {
-            return str_replace(url('/'), '', $url); 
-        }, $imagePaths);
+            return str_replace(url('/') . '/', '', $url); 
+        }, $existingImages);
 
         if ($request->hasFile('new_images')) {
             foreach ($request->file('new_images') as $image) {
@@ -215,14 +218,16 @@ class ProductController extends Controller
     }
 
     /**
-     * 5. XÓA SẢN PHẨM (Giữ nguyên)
+     * 6. XÓA SẢN PHẨM
      */
     public function destroy($id)
     {
         $product = Product::findOrFail($id);
         
-        if (is_array($product->images)) {
-            foreach ($product->images as $img) {
+        // Xóa file vật lý
+        $images = $product->images; 
+        if (is_array($images)) {
+            foreach ($images as $img) {
                 $path = str_replace('storage/', '', $img);
                 Storage::disk('public')->delete($path);
             }
@@ -237,17 +242,14 @@ class ProductController extends Controller
     }
 
     /**
-     * 6. CẬP NHẬT TỒN KHO (Giữ nguyên)
+     * 7. CẬP NHẬT TỒN KHO
      */
     public function addStock(Request $request, $id)
     {
-        $request->validate([
-            'quantity_added' => 'required|integer|min:1'
-        ]);
+        $request->validate(['quantity_added' => 'required|integer|min:1']);
 
         $product = Product::findOrFail($id);
-        $product->stock += $request->quantity_added;
-        $product->save();
+        $product->increment('stock', $request->quantity_added);
 
         return response()->json([
             'status' => 'success',
@@ -255,43 +257,4 @@ class ProductController extends Controller
             'data' => $product
         ]);
     }
-
-    /**
-     * 7. TÌM KIẾM SẢN PHẨM (Giữ nguyên)
-     */
-    public function search(Request $request)
-    {
-        $query = $request->query('q');
-
-        if (!$query) {
-            return response()->json([
-                'status' => 'success',
-                'data' => []
-            ]);
-        }
-
-        $products = Product::where(function($q) use ($query) {
-                $q->where('name', 'LIKE', "%{$query}%");
-            })
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        foreach ($products as $product) {
-            if (is_array($product->images)) {
-                $product->images = array_map(function ($img) {
-                    if (str_starts_with($img, 'http')) return $img;
-                    return url($img);
-                }, $product->images);
-            } else {
-                $product->images = [];
-            }
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'count' => $products->count(),
-            'data' => $products
-        ]);
-    }
-    
 }

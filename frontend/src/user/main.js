@@ -7,7 +7,8 @@ import { CartProvider } from './store/CartContext.js';
 import { NotificationProvider } from './store/NotificationContext.js'; 
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+  // Tạm thời comment StrictMode nếu bạn muốn test tốc độ thực tế của API
+  // <React.StrictMode> 
     <BrowserRouter>
       <NotificationProvider> 
         <CartProvider>  
@@ -15,5 +16,5 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         </CartProvider>
       </NotificationProvider>
     </BrowserRouter>
-  </React.StrictMode>,
+  // </React.StrictMode>,
 )
