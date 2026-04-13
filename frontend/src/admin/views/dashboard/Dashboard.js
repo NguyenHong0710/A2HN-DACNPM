@@ -21,6 +21,7 @@ const Dashboard = () => {
   const [dataStats, setDataStats] = useState({ total_gross: 0, pending_count: 0, net_revenue: 0 })
   const [chartData, setChartData] = useState([])
   // Khởi tạo stats theo đúng cấu trúc Backend trả về
+  // Khởi tạo stats theo đúng cấu trúc Backend
   const [dataStats, setDataStats] = useState({
     total_gross: 0,
     pending_count: 0,
@@ -50,6 +51,8 @@ const Dashboard = () => {
     setLoading(true)
     try {
       const res = await fetch(`${API_BASE_URL}/admin/revenue?filter=${filterType}`, {
+      // GỌI ĐÚNG ROUTELARAVEL ĐÃ KHAI BÁO TRONG api.php
+      const res = await fetch(`${API_BASE_URL}/admin/revenue?filter=Tháng`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${authToken}`,
