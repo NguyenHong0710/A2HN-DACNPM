@@ -7,7 +7,7 @@ import './Cart.css';
 const Cart = () => {
   const { cartItems, removeFromCart, updateQuantity } = useCart();
   const navigate = useNavigate();
-
+//ghichu
   // --- State quản lý các sản phẩm được chọn (Mặc định là mảng rỗng []) ---
   const [selectedItemIds, setSelectedItemIds] = useState([]);
 
