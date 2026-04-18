@@ -39,12 +39,13 @@ export const NotificationProvider = ({ children }) => {
       }
       
       const result = await res.json();
+      // Kiểm tra cấu trúc dữ liệu trả về từ Laravel
       const finalData = Array.isArray(result) ? result : (Array.isArray(result?.data) ? result.data : []);
       
       setNotifications(finalData);
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
-      // Nếu lỗi thì giữ nguyên mảng cũ hoặc rỗng để không bị treo giao diện
+      // Giữ lại dữ liệu cũ nếu lỗi để tránh mất giao diện
       setNotifications(prev => prev.length > 0 ? prev : []);
     }
   }, [getCurrentAccountKey]);
@@ -55,10 +56,11 @@ export const NotificationProvider = ({ children }) => {
     const timer = setInterval(() => {
       refreshNotifications(); 
     }, 60000);
+
     return () => clearInterval(timer);
   }, [refreshNotifications]);
 
-  // Theo dõi sự thay đổi đăng nhập
+  // Theo dõi sự thay đổi đăng nhập (Login/Logout/Storage)
   useEffect(() => {
     const handleAuthChanged = () => {
       const nextAccountKey = getCurrentAccountKey();
@@ -79,6 +81,7 @@ export const NotificationProvider = ({ children }) => {
     };
   }, [accountKey, getCurrentAccountKey, refreshNotifications]);
 
+  // Hàm thêm thông báo mới (Dùng cho các thông báo tức thời ở Frontend)
   const addNotification = (title, desc) => {
     if (getCurrentAccountKey() === 'guest') return;
     const newNotify = {
@@ -89,6 +92,7 @@ export const NotificationProvider = ({ children }) => {
       unread: true,
       image: "https://cdn-icons-png.flaticon.com/512/7518/7518748.png"
     };
+    
     setNotifications((prev) => [newNotify, ...prev]);
   };
 
@@ -106,7 +110,14 @@ export const NotificationProvider = ({ children }) => {
   const unreadCount = notifications.filter(n => n.unread).length;
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, unreadCount, markAllAsRead, markAsRead, refreshNotifications }}>
+    <NotificationContext.Provider value={{ 
+      notifications, 
+      addNotification, 
+      unreadCount, 
+      markAllAsRead, 
+      markAsRead, 
+      refreshNotifications 
+    }}>
       {children}
     </NotificationContext.Provider>
   );

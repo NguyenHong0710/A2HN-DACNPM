@@ -27,10 +27,11 @@ const Home = () => {
     return () => window.removeEventListener('login', checkAuth);
   }, []);
 
-  // 2. GỌI API LẤY SẢN PHẨM
+  // 2. GỌI API LẤY SẢN PHẨM (Tối ưu để tránh cảm giác chờ)
   useEffect(() => {
     let isMounted = true;
     const fetchProducts = async () => {
+      // Chỉ hiện loading nếu đây là lần đầu tiên vào trang và chưa có data
       if (dbProducts.length === 0) setLoading(true);
       
       try {
@@ -58,9 +59,9 @@ const Home = () => {
 
     fetchProducts();
     return () => { isMounted = false; };
-  }, [dbProducts.length]);
+  }, []); // Chạy 1 lần khi mount
 
-  // 3. BANNER TRƯỢT
+  // 3. BANNER TRƯỢT (Dùng useMemo để tránh tạo lại mảng khi re-render)
   const bannerImages = useMemo(() => [
     {
       url: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=1200&q=60",
@@ -120,7 +121,7 @@ const Home = () => {
             <div className="hero-content">
               <span className="hero-badge">Chính hãng 100%</span>
               <h1 className="hero-title">{banner.title}</h1>
-              <p className="hero-subtitle">{banner.subtitle}</p>
+              <div className="hero-subtitle">{banner.subtitle}</div>
               <Link to="/shop" className="hero-btn">
                 Khám phá ngay <FiArrowRight />
               </Link>

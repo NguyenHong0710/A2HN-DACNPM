@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Hoadon; 
+use App\Models\Hoadon;
 use App\Models\Product;
 use App\Models\ChiTietHoadon;
 use Carbon\Carbon;
@@ -32,12 +32,11 @@ class DoanhthuController extends Controller
             // Đếm đơn hàng đang chờ xử lý (Chờ lấy hàng)
             $pendingCount = Hoadon::where('deliveryStatus', 'Chờ lấy hàng')->count();
 
-            // 2. CHART DATA (Dữ liệu biểu đồ linh hoạt)
+            // 2. CHART DATA
             $labels = [];
             $chartData = [];
 
             if ($filter === 'Năm') {
-                // Lấy dữ liệu 5 năm gần nhất
                 for ($i = 4; $i >= 0; $i--) {
                     $year = $now->copy()->subYears($i)->year;
                     $labels[] = "Năm " . $year;
@@ -48,7 +47,6 @@ class DoanhthuController extends Controller
                 }
             } 
             elseif ($filter === 'Tháng') {
-                // Lấy 12 tháng trong năm hiện tại
                 $labels = ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
                 $chartData = array_fill(0, 12, 0);
                 $data = Hoadon::where('deliveryStatus', 'Đã giao')
@@ -58,7 +56,6 @@ class DoanhthuController extends Controller
                 foreach ($data as $time => $total) { $chartData[$time - 1] = (float)$total; }
             } 
             else { 
-                // Mặc định: Lấy 30 ngày gần nhất (Filter Ngày)
                 for ($i = 29; $i >= 0; $i--) {
                     $date = $now->copy()->subDays($i);
                     $labels[] = $date->format('d/m');
@@ -70,11 +67,11 @@ class DoanhthuController extends Controller
             }
 
             // 3. RECENT ORDERS
-            $recentOrders = Hoadon::with(['chiTiet'])
-    ->where('deliveryStatus', 'Đã giao') // Chỉ lấy những đơn đã giao thành công
-    ->orderBy('created_at', 'desc')
-    ->take(10)
-    ->get()
+            $recentOrders = Hoadon::with(['chiTiet.product'])
+                ->where('deliveryStatus', 'Đã giao')
+                ->orderBy('created_at', 'desc')
+                ->take(10)
+                ->get()
                 ->map(function ($order) {
                     return [
                         'id' => $order->id,
@@ -109,9 +106,6 @@ class DoanhthuController extends Controller
         }
     }
 
-    /**
-     * Lấy danh sách sản phẩm bán chạy - Chỉ tính từ đơn "Đã giao"
-     */
     public function getTopProducts()
     {
         try {
@@ -128,45 +122,32 @@ class DoanhthuController extends Controller
                 ->take(5)
                 ->get();
 
-            return response()->json([
-                'status' => 'success', 
-                'data' => $topProducts
-            ]);
-
+            return response()->json(['status' => 'success', 'data' => $topProducts]);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
 
-    /**
-     * CẬP NHẬT: Lấy danh sách tồn kho kèm số lượng đã bán thực tế
-     */
     public function getInventory()
     {
         try {
-            // Lấy toàn bộ sản phẩm
             $products = Product::select('id', 'name', 'stock')->get();
-
             $data = $products->map(function($product) {
-                // Tính tổng số lượng đã bán từ các hóa đơn "Đã giao"
                 $soldCount = DB::table('chi_tiet_hoadons')
                     ->join('hoadons', 'hoadons.id', '=', 'chi_tiet_hoadons.hoadon_id')
-                    ->where('chi_tiet_hoadons.name', $product->name) // Khớp theo tên sản phẩm
+                    ->where('chi_tiet_hoadons.name', $product->name)
                     ->where('hoadons.deliveryStatus', 'Đã giao')
                     ->sum('chi_tiet_hoadons.qty');
 
                 return [
                     'id'    => $product->id,
                     'name'  => $product->name,
-                    'stock' => (int)$product->stock,  // Số lượng còn lại trong kho
-                    'sold'  => (int)$soldCount        // Số lượng đã bán thành công
+                    'stock' => (int)$product->stock,
+                    'sold'  => (int)$soldCount
                 ];
-            })->sortBy('stock')->values(); // Sắp xếp theo hàng sắp hết trước
+            })->sortBy('stock')->values();
 
-            return response()->json([
-                'status' => 'success',
-                'data' => $data
-            ]);
+            return response()->json(['status' => 'success', 'data' => $data]);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
