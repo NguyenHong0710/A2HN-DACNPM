@@ -119,9 +119,7 @@ class HoadonController extends Controller
         }
     }
 
-    /**
-     * Lấy hóa đơn của RIÊNG người dùng (Order History)
-     */
+  
     public function getMyInvoices(Request $request)
     {
         try {
