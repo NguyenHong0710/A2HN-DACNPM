@@ -47,7 +47,7 @@ const Checkout = () => {
     }
     return [];
   };
-//chu y
+
 
   const safeCart = getSelectedItems();
   const clearCart = cartData.clearCart || cartData.emptyCart || (() => {});
