@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use App\Models\ActivityLog;
+
 class UserController extends Controller
 {
     /**
@@ -15,45 +16,42 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-       $query = User::query();
+        $query = User::query();
 
-    // 1. Lọc theo Role - Đổi từ 'activeTab' thành 'role' để khớp với React
-    if ($request->filled('role')) {
-        $tab = strtolower($request->role);
-        
-        if ($tab === 'customer') {
-            $query->where(function($q) {
-                $q->where('role', 'customer')
-                  ->orWhere('role', 'Customer')
-                  ->orWhereNull('role')
-                  ->orWhere('role', '');
-            });
-        } else if ($tab === 'admin') { // Thêm else if để chắc chắn
-            $query->where(function($q) {
-                $q->where('role', 'admin')
-                  ->orWhere('role', 'Admin');
+        // 1. Lọc theo Role - Khớp với logic React gửi lên
+        if ($request->filled('role')) {
+            $tab = strtolower($request->role);
+            
+            if ($tab === 'customer') {
+                $query->where(function($q) {
+                    $q->whereIn('role', ['customer', 'Customer', ''])
+                      ->orWhereNull('role');
+                });
+            } else if ($tab === 'admin') {
+                $query->whereIn('role', ['admin', 'Admin']);
+            }
+        }
+
+        // 2. Tìm kiếm theo tên hoặc email
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('email', 'LIKE', "%{$search}%");
             });
         }
-    }
 
-    // 2. Tìm kiếm - Đổi từ 'searchTerm' thành 'search' để khớp với React
-    if ($request->filled('search')) {
-        $search = $request->search;
-        $query->where(function($q) use ($search) {
-            $q->where('name', 'LIKE', "%{$search}%")
-              ->orWhere('email', 'LIKE', "%{$search}%");
-        });
-    }
-
-        // 3. Trình bày dữ liệu trả về cho React
+        // 3. Trình bày dữ liệu trả về cho React (Bao gồm chi tiêu và hạng)
         $users = $query->latest()->get()->map(function($user) {
             return [
                 'id' => 'UID-' . $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone ?? 'Chưa có',
-                'role' => strtolower($user->role ?? 'customer'), // Chuẩn hóa về chữ thường
+                'role' => strtolower($user->role ?? 'customer'),
                 'status' => $user->status ?? 'Active',
+                'total_spent' => (float)($user->total_spent ?? 0), // Thêm để React hiển thị
+                'membership_tier_id' => $user->membership_tier_id, // Thêm để hiển thị nhãn hạng
                 'joined' => $user->created_at ? $user->created_at->format('Y-m-d') : '2024-01-01',
             ];
         });
@@ -62,13 +60,23 @@ class UserController extends Controller
     }
 
     /**
-     * Xem chi tiết 1 user (Phải có để khớp với route /{id} trong api.php)
+     * Xem chi tiết 1 user
      */
     public function show($id)
     {
         $cleanId = str_replace('UID-', '', $id);
         $user = User::findOrFail($cleanId);
-        return response()->json($user);
+        
+        // Trả về kèm tiền chi tiêu để Admin nắm thông tin
+        return response()->json([
+            'id' => 'UID-' . $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'role' => $user->role,
+            'total_spent' => $user->total_spent,
+            'membership_tier_id' => $user->membership_tier_id
+        ]);
     }
 
     /**
@@ -138,37 +146,40 @@ class UserController extends Controller
 
         return response()->json(['message' => 'Đã xóa người dùng khỏi hệ thống!']);
     }
+
     /**
- * Lấy lịch sử hoạt động (Dành cho Admin)
- */
-public function getActivityLogs(Request $request)
-{
-    // Sửa chữ 'Admin' thành 'admin' cho khớp với Database bạn vừa sửa
-    if (auth()->user()->role !== 'admin') { 
-        return response()->json(['message' => 'Bạn không có quyền truy cập'], 403);
+     * Lấy lịch sử hoạt động (Dành cho Admin)
+     */
+    public function getActivityLogs(Request $request)
+    {
+        // Kiểm tra quyền Admin (Sử dụng strtolower để tránh lỗi viết hoa viết thường)
+        if (strtolower(auth()->user()->role) !== 'admin') { 
+            return response()->json(['message' => 'Bạn không có quyền truy cập'], 403);
+        }
+
+        $logs = ActivityLog::orderBy('created_at', 'desc')->paginate(20);
+        
+        return response()->json([
+            'status' => 'success',
+            'data' => $logs->items(),
+            'total' => $logs->total()
+        ]);
     }
 
-    $logs = ActivityLog::orderBy('created_at', 'desc')->paginate(20);
-    
-    return response()->json([
-        'status' => 'success',
-        'data' => $logs->items(),
-        // ...
-    ]);
-}
-public function deleteOldLogs()
-{
-    // Chỉ Admin mới được xóa
-    if (auth()->user()->role !== 'admin') {
-        return response()->json(['message' => 'Không có quyền'], 403);
+    /**
+     * Xóa log cũ trên 30 ngày
+     */
+    public function deleteOldLogs()
+    {
+        if (strtolower(auth()->user()->role) !== 'admin') {
+            return response()->json(['message' => 'Không có quyền'], 403);
+        }
+
+        $deletedCount = ActivityLog::where('created_at', '<', now()->subDays(30))->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Đã dọn dẹp xong $deletedCount dòng log cũ."
+        ]);
     }
-
-    // Xóa các log được tạo từ 30 ngày trước trở đi
-    $deletedCount = \App\Models\ActivityLog::where('created_at', '<', now()->subDays(30))->delete();
-
-    return response()->json([
-        'status' => 'success',
-        'message' => "Đã dọn dẹp xong $deletedCount dòng log cũ."
-    ]);
-}
 }

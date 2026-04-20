@@ -447,3 +447,257 @@
 .avatar-edit-badge svg {
   font-size: 14px;
 }
+/* Tổng thể trang */
+/* Tổng thể trang - Căn giữa và tạo khoảng thoáng */
+.profile-page-wrapper {
+  background-color: #fcfbf7;
+  min-height: 100vh;
+  padding: 60px 20px; 
+  display: flex;
+  justify-content: center; /* Căn giữa toàn bộ khung hồ sơ */
+  font-family: 'Inter', sans-serif;
+}
+
+.profile-container {
+  width: 100%;
+  max-width: 1050px; /* Thu hẹp chiều rộng từ 1200px xuống 1050px */
+  display: grid;
+  grid-template-columns: 280px 1fr; /* Thu nhỏ sidebar đen lại một chút */
+  gap: 25px;
+}
+
+/* Sidebar bên trái */
+.profile-sidebar {
+  background: #1a1a1a;
+  border-radius: 20px;
+  padding: 40px 20px;
+  color: #fff;
+  height: fit-content;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+}
+
+.user-avatar-section {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.avatar-frame {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 15px;
+  border-radius: 50%;
+  border: 3px solid #c5a059;
+  padding: 5px;
+  position: relative;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-display-name {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #fff;
+}
+
+/* Badge hạng thành viên */
+.luxury-badge-container {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, #c5a059 0%, #ecd399 100%);
+  padding: 6px 15px;
+  border-radius: 50px;
+  color: #000;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 15px rgba(197, 160, 89, 0.4);
+}
+
+.tier-icon { margin-right: 8px; }
+
+/* Menu Sidebar */
+.profile-menu {
+  list-style: none;
+  padding: 0;
+}
+
+.profile-menu li {
+  padding: 15px 20px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+  color: #aaa;
+}
+
+.profile-menu li:hover, .profile-menu li.active {
+  background: rgba(197, 160, 89, 0.2);
+  color: #ecd399;
+}
+
+.menu-icon { margin-right: 15px; font-size: 1.1rem; }
+.logout-item:hover { color: #ff6b6b !important; background: rgba(255,107,107,0.1) !important; }
+
+/* Content bên phải */
+content-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 30px 45px; /* Tăng padding hông để nội dung form co vào giữa */
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+  border: 1px solid #f0e6d2;
+}
+
+.header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+/* Chia cột thông tin mảnh hơn */
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px 50px; /* Tăng khoảng cách giữa 2 cột để form nhìn thon hơn */
+}
+
+/* Tiêu đề nhỏ lại một chút */
+.content-title {
+  font-size: 1.6rem;
+  color: #1a1a1a;
+  font-family: 'Playfair Display', serif;
+}
+
+/* CẬP NHẬT: THANH TIẾN TRÌNH LUXURY */
+.membership-progress-card {
+  background: #fffcf5;
+  border: 1px solid #f3e5c2;
+  border-radius: 12px;
+  padding: 20px 25px;
+  margin-bottom: 35px;
+}
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: #856404;
+}
+
+.luxury-progress-bar {
+  height: 6px; /* Làm thanh tiến trình mỏng lại cực kỳ tinh tế */
+  background: #eee;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c5a059, #ecd399);
+  transition: width 1s ease-in-out;
+}
+
+.progress-message {
+  font-style: italic;
+  font-size: 0.95rem;
+  color: #666;
+  margin: 0;
+}
+
+/* Grid thông tin */
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+.info-item.full-width { grid-column: span 2; }
+
+.info-label-wrapper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  color: #c5a059;
+}
+
+.info-label {
+  font-weight: 600;
+  font-size: 0.8rem; /* Chữ nhãn nhỏ lại */
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #999; /* Màu xám nhẹ cho tinh tế */
+}
+
+.info-value-text {
+  font-size: 1rem;
+  color: #333;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0; /* Đường gạch chân mảnh */
+}
+/* Input & Button */
+.luxury-input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.luxury-input:focus { border-color: #c5a059; }
+
+.gold-outline-btn {
+  padding: 6px 18px;
+  font-size: 0.85rem;
+  border-radius: 4px;
+}
+
+.gold-outline-btn:hover {
+  background: #c5a059;
+  color: #fff;
+}
+
+/* Bảng lịch sử đơn hàng */
+.luxury-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.luxury-table th {
+  text-align: left;
+  padding: 15px;
+  background: #f8f9fa;
+  color: #c5a059;
+  border-bottom: 2px solid #eee;
+}
+
+.luxury-table td {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.price-cell { font-weight: 700; color: #1a1a1a; }
+
+.status-tag {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+}
+
+.tag-delivered { background: #e6fcf5; color: #0ca678; }
+.tag-pending { background: #fff9db; color: #f08c00; }
+
+/* Responsive */
+@media (max-width: 992px) {
+  .profile-container { grid-template-columns: 1fr; }
+  .info-grid { grid-template-columns: 1fr; }
+  .info-item.full-width { grid-column: span 1; }
+}

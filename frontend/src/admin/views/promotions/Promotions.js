@@ -1,38 +1,54 @@
 import React, { useState, useEffect } from 'react'
 import {
-  CCard, CCardBody, CCardHeader, CCol, CRow, CTable, CTableBody, CTableHead,
-  CTableHeaderCell, CTableRow, CTableDataCell, CButton, CFormInput, CModal,
+  CCard, CCardBody, CCol, CRow, CButton, CFormInput, CModal,
   CModalHeader, CModalTitle, CModalBody, CModalFooter, CFormSelect, CFormLabel,
-  CBadge, CProgress, CFormSwitch
+  CBadge, CFormSwitch, CFormCheck
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { 
-  cilPlus, cilPencil, cilTrash, cilSearch, cilTag, cilBasket, cilCalendar
+  cilPlus, cilPencil, cilTrash, cilGift, cilSearch, cilCalendar
 } from '@coreui/icons'
 
-// --- CẤU HÌNH API MỚI CHO LARAVEL ---
-import { API_BASE } from 'src/config';
-// Trỏ vào tiền tố route API của Laravel, giả sử config của bạn trỏ vào root domain
+// Cấu hình URL
 const API_URL = 'http://127.0.0.1:8000/api/promotions';
+const ADMIN_API = 'http://127.0.0.1:8000/api/admin';
+
 const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
 const admin_ID = storedUser.id || 1; 
 
 const Promotions = () => {
   const [promotions, setPromotions] = useState([])
   const [adminProducts, setadminProducts] = useState([])
+  const [membershipTiers, setMembershipTiers] = useState([]) 
   const [modalVisible, setModalVisible] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   
+  // --- STATE TÍNH NĂNG TẶNG VOUCHER ---
+  const [assignModalVisible, setAssignModalVisible] = useState(false)
+  const [customers, setCustomers] = useState([])
+  const [selectedVoucher, setSelectedVoucher] = useState(null)
+  const [selectedUserIds, setSelectedUserIds] = useState([])
+  const [selectedTierId, setSelectedTierId] = useState('') 
+  const [userSearchTerm, setUserSearchTerm] = useState('')
+  const [sendToAll, setSendToAll] = useState(false)
+
   const [formData, setFormData] = useState({
     code: '', name: '', type: 'percent', value: '', 
     scope: 'order', productId: '', 
-    startDate: '', endDate: '', limit: 100
+    startDate: '', endDate: '', limit: 100,
+    min_tier_id: 1 
   })
 
-  // --- LOGIC XỬ LÝ (ĐÃ CẬP NHẬT THEO LARAVEL ROUTE) ---
-  
-  // 1. Lấy danh sách khuyến mãi
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token'); 
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+    };
+  };
+
   const fetchPromotions = async () => {
     try {
       const response = await fetch(`${API_URL}?admin_id=${admin_ID}`);
@@ -41,26 +57,6 @@ const Promotions = () => {
     } catch (error) { console.error("Lỗi tải dữ liệu:", error); }
   }
 
-  // 2. Bật / Tắt trạng thái
-  const toggleStatus = async (id, currentStatus) => {
-    const newStatus = currentStatus ? 0 : 1;
-    try {
-        const response = await fetch(`${API_URL}/toggle-status`, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Accept': 'application/json' 
-            },
-            body: JSON.stringify({ id: id, status: newStatus })
-        });
-        const result = await response.json();
-        if (result.status === 'success') {
-            setPromotions(promotions.map(p => p.id === id ? { ...p, status: newStatus } : p));
-        } else { alert("Lỗi: " + result.message); }
-    } catch (error) { console.error("Lỗi kết nối status:", error); }
-  }
-
-  // 3. Lấy danh sách sản phẩm
   const fetchProducts = async () => {
     try {
       const response = await fetch(`${API_URL}/products?admin_id=${admin_ID}`);
@@ -69,75 +65,186 @@ const Promotions = () => {
     } catch (error) { console.error("Lỗi tải sản phẩm:", error); }
   }
 
+  const fetchCustomers = async () => {
+    try {
+      const response = await fetch(`${ADMIN_API}/users-for-assignment`);
+      const data = await response.json();
+      setCustomers(Array.isArray(data) ? data : (data.users || []));
+    } catch (error) { console.error("Lỗi fetch khách hàng:", error); }
+  }
+
+  const fetchMembershipTiers = async () => {
+    try {
+      const response = await fetch(`${API_URL}/membership-tiers`);
+      const data = await response.json();
+      setMembershipTiers(data);
+    } catch (error) { console.error("Lỗi fetch hạng:", error); }
+  }
+
   useEffect(() => { 
     fetchPromotions(); 
     fetchProducts(); 
+    fetchCustomers();
+    fetchMembershipTiers();
   }, []);
-const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
+
+  // --- LOGIC XỬ LÝ CHỌN LỰA TRONG MODAL TẶNG QUÀ ---
+
+  // 1. Khi tick "Tặng cho toàn bộ"
+  const handleToggleSendToAll = (checked) => {
+    setSendToAll(checked);
+    if (checked) {
+      setSelectedTierId(''); 
+      const allIds = customers.map(u => u.id);
+      setSelectedUserIds(allIds);
+    } else {
+      setSelectedUserIds([]);
+    }
+  }
+
+  // 2. Khi chọn "Hạng thành viên" -> ĐÃ FIX: RESET DANH SÁCH CŨ TRƯỚC KHI CHỌN MỚI
+  const handleSelectTier = (tierId) => {
+    setSelectedTierId(tierId);
+    setSendToAll(false);
+    
+    if (tierId !== '') {
+      // Tìm tên hạng từ ID
+      const selectedTier = membershipTiers.find(t => String(t.id) === String(tierId));
+      if (selectedTier) {
+        // Lọc danh sách người dùng thuộc hạng này
+        const idsInTier = customers
+          .filter(user => user.tier_name === selectedTier.name)
+          .map(user => user.id);
+        
+        // Cập nhật lại mảng ID (Xóa sạch những ID cũ không thuộc hạng này)
+        setSelectedUserIds(idsInTier);
+      }
+    } else {
+      // Nếu chọn về mặc định "-- Chọn hạng --", reset mảng chọn
+      setSelectedUserIds([]);
+    }
+  }
+
+  // 3. Khi chọn cá nhân
+  const handleToggleUser = (userId) => {
+    setSendToAll(false); 
+    setSelectedTierId(''); 
+    
+    const ids = selectedUserIds.includes(userId) 
+                ? selectedUserIds.filter(id => id !== userId) 
+                : [...selectedUserIds, userId];
+    setSelectedUserIds(ids);
+  }
+
+  const openAssignModal = (item) => {
+    setSelectedVoucher(item);
+    setSelectedTierId('');
+    setUserSearchTerm('');
+    // Khi mở modal, lấy danh sách user đang có voucher này từ item (nếu có)
+    if (item.users && item.users.length > 0) {
+        setSelectedUserIds(item.users.map(u => u.id));
+        setSendToAll(false);
+    } else {
+        setSelectedUserIds([]);
+        setSendToAll(false);
+    }
+    setAssignModalVisible(true);
+  }
+
+  const handleAssignVoucher = async () => {
+    if (!sendToAll && selectedUserIds.length === 0 && !selectedTierId) {
+      return alert("Vui lòng chọn đối tượng tặng!");
+    }
+    
+    try {
+      const response = await fetch(`${ADMIN_API}/assign-voucher`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          promotion_id: selectedVoucher.id,
+          user_ids: selectedUserIds,
+          tier_id: selectedTierId || null, 
+          send_to_all: sendToAll
+        })
+      });
+      const result = await response.json();
+      if (result.status === 'success' || response.ok) {
+        alert("✅ Cập nhật danh sách tặng thành công!");
+        setAssignModalVisible(false);
+        fetchPromotions();
+      } else {
+        alert("Lỗi: " + (result.message || "Không thể tặng voucher"));
+      }
+    } catch (error) { alert("Lỗi khi kết nối server!"); }
+  }
+
+  const toggleStatus = async (id, currentStatus) => {
+    const newStatus = currentStatus ? 0 : 1;
+    try {
+        const response = await fetch(`${API_URL}/toggle-status`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ id: id, status: newStatus })
+        });
+        if (response.ok) {
+            setPromotions(promotions.map(p => p.id === id ? { ...p, status: newStatus } : p));
+        }
+    } catch (error) { console.error(error); }
+  }
 
   const openModal = (item = null) => {
     if (item) {
         setEditingItem(item)
         setFormData({
             ...item,
-            startDate: item.start_date, 
-            endDate: item.end_date,
-            limit: item.usage_limit,
-            productId: item.product_id || ''
+            startDate: item.start_date || '', 
+            endDate: item.end_date || '',
+            limit: item.usage_limit || 100,
+            productId: item.product_id || '',
+            min_tier_id: item.min_tier_id || 1 
         })
     } else {
         setEditingItem(null)
         setFormData({
             code: '', name: '', type: 'percent', value: '', 
             scope: 'order', productId: '', 
-            startDate: '', endDate: '', limit: 100
+            startDate: '', endDate: '', limit: 100,
+            min_tier_id: 1
         })
     }
     setModalVisible(true)
   }
 
-  // 4. Lưu (Tạo mới hoặc Cập nhật)
   const handleSave = async () => {
-    if(!formData.code || !formData.value) return alert("Vui lòng nhập đủ thông tin mã và giá trị!")
-    if(formData.scope === 'product' && !formData.productId) return alert("Vui lòng chọn sản phẩm áp dụng!")
-    
+    if(!formData.code || !formData.value) return alert("Thiếu thông tin!")
     const payload = { id: editingItem ? editingItem.id : null, ...formData, admin_id: admin_ID }
-    
     try {
-        const action = editingItem ? 'update' : 'create';
+        const action = editingItem ? 'update' : 'store';
         const response = await fetch(`${API_URL}/${action}`, {
             method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(payload)
         });
-        const result = await response.json();
-        if(result.status === 'success') {
-            alert("Thành công!");
+        if(response.ok) {
+            alert(editingItem ? "✅ Cập nhật thành công!" : "✨ Tạo mới thành công!");
             fetchPromotions();
             setModalVisible(false);
-        } else { alert("Lỗi: " + result.message); }
+        } else {
+            alert("❌ Có lỗi xảy ra!");
+        }
     } catch (error) { alert("Lỗi kết nối!"); }
   }
 
-  // 5. Xóa khuyến mãi
   const handleDelete = async (id) => {
-      if(window.confirm('Bạn có chắc chắn muốn xóa mã giảm giá này?')) {
-          try {
-              // Dùng phương thức DELETE chuẩn RESTful
-              const response = await fetch(`${API_URL}/delete?id=${id}`, {
-                  method: 'DELETE',
-                  headers: { 
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json' 
-                  }
-              });
-              const result = await response.json();
-              if(result.status === 'success') fetchPromotions();
-          } catch (error) { alert("Lỗi khi xóa"); }
-      }
+    if(window.confirm('Xóa mã này?')) {
+        try {
+            await fetch(`${API_URL}/delete?id=${id}`, { 
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+            fetchPromotions();
+        } catch (error) { console.error(error); }
+    }
   }
 
   const filteredPromotions = promotions.filter(p => 
@@ -146,315 +253,224 @@ const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN', { style: 'curr
   );
 
   return (
-    <div className="promotions-container pb-5">
+    <div className="promotions-container p-4" style={{ backgroundColor: '#fcfcfd' }}>
       <style>{`
-        /* Custom CSS cho giao diện hiện đại */
-        .glass-card { 
-          border: none; 
-          border-radius: 16px; 
-          box-shadow: 0 10px 30px rgba(0,0,0,0.04); 
-          background: #ffffff;
-        }
-        .header-search {
-          background: #f8f9fa;
-border: 1px solid #e9ecef;
-          border-radius: 12px;
-          transition: 0.3s;
-        }
-        .header-search:focus-within {
-          border-color: #52b788;
-          box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.1);
-        }
-        .table-modern thead th {
-          background: #fdfdfd;
-          color: #adb5bd;
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          border-top: none;
-          padding: 1.25rem 1rem;
-        }
-        .table-modern td {
-          padding: 1.25rem 1rem;
-          vertical-align: middle;
-          border-bottom: 1px solid #f8f9fa;
-        }
-        .coupon-tag {
-          background: #f0fdf4;
-          color: #166534;
-          padding: 6px 14px;
-          border-radius: 8px;
-          font-weight: 700;
-          font-family: 'Monaco', monospace;
-          border: 1px dashed #bbf7d0;
-          display: inline-block;
-        }
-        .discount-value {
-          font-size: 1.1rem;
-          font-weight: 800;
-          color: #1a1a1a;
-        }
-        .progress-thin {
-          border-radius: 10px;
-          background-color: #f1f5f9;
-        }
-        .btn-create {
-          background: linear-gradient(135deg, #52b788 0%, #40916c 100%);
-          border: none;
-          padding: 10px 24px;
-          border-radius: 12px;
-          box-shadow: 0 4px 15px rgba(82, 183, 136, 0.3);
-        }
-        .btn-create:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 6px 20px rgba(82, 183, 136, 0.4);
-        }
-        .status-active { color: #52b788; font-weight: 600; font-size: 0.85rem; }
-        .status-inactive { color: #9ca3af; font-weight: 600; font-size: 0.85rem; }
-        
-        /* Modal styling */
-        .modal-modern { border-radius: 20px; overflow: hidden; border: none; }
-        .form-label-bold { font-weight: 600; color: #4b5563; margin-bottom: 8px; font-size: 0.9rem; }
-        .input-modern { border-radius: 10px; padding: 10px 15px; border: 1px solid #e5e7eb; }
-        .input-modern:focus { border-color: #52b788; box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.1); }
+        .brand-bronze { background-color: #b1885f !important; color: white !important; border: none; }
+        .text-bronze { color: #b1885f !important; }
+        .btn-create-promo { background-color: #b1885f; border-color: #b1885f; color: white; border-radius: 12px; font-weight: 600; }
+        .promo-search-bar { border-radius: 12px; border: 1px solid #ddd; padding-left: 45px; height: 48px; }
+        .promo-search-icon { position: absolute; left: 16px; top: 14px; color: #aaa; }
+        .voucher-grid-card { border: none; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.03); background: white; margin-bottom: 24px; transition: 0.3s; }
+        .voucher-tag-code { background: #eef2ff; color: #4338ca; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-family: 'Monaco', monospace; }
+        .voucher-grid-header { padding: 1.5rem 1.5rem 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+        .voucher-grid-body { padding: 0 1.5rem 1rem; }
+        .voucher-name { font-weight: 700; font-size: 1.1rem; color: #1e1e1e; margin-bottom: 0.5rem; }
+        .voucher-value { font-weight: 800; font-size: 1.2rem; color: #28a745; margin-bottom: 1rem;}
+        .voucher-info-row { display: flex; justify-content: space-between; color: #666; font-size: 0.85rem; margin-bottom: 0.4rem; }
+        .voucher-footer { padding: 1rem 1.5rem; border-top: 1px solid #f5f5f5; display: flex; justify-content: space-between; align-items: center; }
+        .modal-compact .modal-content { border-radius: 18px; border: none; overflow: hidden; }
+        .modal-compact .modal-body { padding: 1.25rem !important; }
+        .modal-compact .form-label { font-size: 0.75rem; font-weight: 700; color: #777; text-transform: uppercase; margin-bottom: 4px; }
       `}</style>
 
-      <CCard className="glass-card mb-4">
-        <CCardHeader className="bg-white border-0 pt-4 pb-2 px-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
-          <div>
-            <h4 className="mb-0 fw-bold text-dark">Voucher & Khuyến mãi</h4>
-            <p className="text-muted small mb-0">Quản lý các chương trình ưu đãi cho khách hàng</p>
+      <div className="promo-page-header d-flex justify-content-between align-items-start mb-4">
+        <div>
+          <h2 className="fw-bold text-dark mb-1">Chiến dịch Ưu đãi</h2>
+          <p className="text-muted">Quản lý mã giảm giá hệ thống Lumina Jewelry</p>
+        </div>
+        <div className="d-flex gap-3 align-items-center mt-3 mt-md-0">
+          <div className="position-relative">
+            <CIcon icon={cilSearch} className="promo-search-icon" size="xl" />
+            <CFormInput 
+              className="promo-search-bar shadow-sm" 
+              placeholder="Tìm kiếm mã..." 
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ width: '280px' }}
+            />
           </div>
-          <div className="d-flex w-100 w-md-auto gap-3">
-             <div className="position-relative w-100" style={{minWidth: '280px'}}>
-                <CFormInput 
-                    className="header-search ps-5 py-2 border-0" 
-                    placeholder="Tìm theo mã hoặc tên voucher..." 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-/>
-                <CIcon icon={cilSearch} className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" />
-             </div>
-             <CButton className="btn-create text-white fw-bold text-nowrap" onClick={() => openModal()}>
-                <CIcon icon={cilPlus} className="me-2"/> Tạo mã mới
-             </CButton>
-          </div>
-        </CCardHeader>
+          <CButton className="btn-create-promo px-4 h-100 fw-bold d-flex align-items-center shadow-sm" onClick={() => openModal()}>
+            <CIcon icon={cilPlus} className="me-2"/> Tạo mới
+          </CButton>
+        </div>
+      </div>
 
-        <CCardBody className="p-0">
-          <CTable hover responsive className="table-modern mb-0">
-            <CTableHead>
-              <CTableRow>
-                <CTableHeaderCell className="ps-4">Thông tin Voucher</CTableHeaderCell>
-                <CTableHeaderCell>Mức Giảm</CTableHeaderCell>
-                <CTableHeaderCell>Đối Tượng</CTableHeaderCell>
-                <CTableHeaderCell>Thời Hạn</CTableHeaderCell>
-                <CTableHeaderCell style={{width: '180px'}}>Hiệu Suất Sử Dụng</CTableHeaderCell>
-                <CTableHeaderCell className="text-center">Trạng Thái</CTableHeaderCell>
-                <CTableHeaderCell className="text-end pe-4">Thao Tác</CTableHeaderCell>
-              </CTableRow>
-            </CTableHead>
-            <CTableBody>
-              {filteredPromotions.map(item => (
-                <CTableRow key={item.id}>
-                  <CTableDataCell className="ps-4">
-                    <div className="d-flex align-items-center gap-3">
-                      <div className="coupon-tag">{item.code}</div>
-                      <div>
-                        <div className="fw-bold text-dark">{item.name}</div>
-                        <div className="text-muted small">ID: #{item.id}</div>
-                      </div>
+      <CRow>
+        {filteredPromotions.map(item => (
+          <CCol lg={6} xl={4} key={item.id}>
+            <CCard className="voucher-grid-card shadow-sm border-0">
+                <div className="voucher-grid-header">
+                    <div className="voucher-tag-code">{item.code}</div>
+                    <div className="d-flex align-items-center gap-2">
+                        <CBadge color="light" variant="outline" className="text-dark border">
+                             Hạng: {membershipTiers.find(t => t.id === item.min_tier_id)?.name || 'Mới'}
+                        </CBadge>
+                        <CFormSwitch 
+                            checked={Number(item.status) === 1} 
+                            onChange={() => toggleStatus(item.id, Number(item.status) === 1)} 
+                        />
                     </div>
-                  </CTableDataCell>
-                  
-                  <CTableDataCell>
-                    <div className="discount-value">
-                      {item.type === 'percent' ? `${item.value}%` : formatCurrency(item.value)}
+                </div>
+
+                <div className="voucher-grid-body">
+                    <div className="voucher-name">{item.name}</div>
+                    <div className="voucher-value">
+                        {item.type === 'percent' ? `Giảm ${item.value}%` : `Giảm ${Number(item.value).toLocaleString()}đ`}
                     </div>
-                    <div className="small text-muted">Giảm trực tiếp</div>
-                  </CTableDataCell>
-
-                  <CTableDataCell>
-                    <CBadge 
-                      className="py-2 px-3 rounded-pill"
-                      style={{ 
-                        backgroundColor: item.scope === 'order' ? '#eff6ff' : '#fff7ed', 
-                        color: item.scope === 'order' ? '#1d4ed8' : '#c2410c',
-                        border: 'none'
-                      }}
-                    >
-                      <CIcon icon={item.scope === 'order' ? cilTag : cilBasket} className="me-1" size="sm"/>
-                      {item.scope === 'order' ? 'Toàn cửa hàng' : 'Sản phẩm lẻ'}
-                    </CBadge>
-                    {item.product_name && (
-                      <div className="small text-muted text-truncate mt-1" style={{maxWidth:'150px'}} title={item.product_name}>
-                        {item.product_name}
-                      </div>
-)}
-                  </CTableDataCell>
-
-                  <CTableDataCell>
-                    <div className="d-flex align-items-center gap-2 small text-dark fw-medium">
-                      <CIcon icon={cilCalendar} size="sm" className="text-muted"/>
-                      <span>{item.start_date}</span>
+                    <div className="voucher-info-row">
+                        <span>Giới hạn sử dụng</span>
+                        <span className="fw-bold text-dark">{item.usage_limit || 'Không giới hạn'}</span>
                     </div>
-                    <div className="ps-4 small text-muted">đến {item.end_date}</div>
-                  </CTableDataCell>
-
-                  <CTableDataCell>
-                    <div className="d-flex justify-content-between align-items-end mb-1">
-                      <span className="fw-bold text-dark small">{item.used_count} <span className="text-muted fw-normal">lượt</span></span>
-                      <span className="text-muted" style={{fontSize: '10px'}}>{item.usage_limit} tối đa</span>
+                    <div className="voucher-info-row">
+                        <span>Đối tượng nhận</span>
+                        <span className="fw-bold text-dark">{item.users?.length > 0 ? `${item.users.length} khách hàng` : 'Công khai'}</span>
                     </div>
-                    <CProgress 
-                      className="progress-thin"
-                      color={item.used_count >= item.usage_limit ? 'danger' : 'success'} 
-                      value={(item.used_count/item.usage_limit)*100} 
-                      height={6} 
-                    />
-                  </CTableDataCell>
+                </div>
 
-                  <CTableDataCell className="text-center">
-                    <div className="d-flex flex-column align-items-center gap-1">
-                      <CFormSwitch 
-                        size="lg"
-                        checked={Number(item.status) === 1} 
-                        onChange={() => toggleStatus(item.id, Number(item.status) === 1)} 
-                        style={{ cursor: 'pointer' }}
-                      />
-                      <span className={Number(item.status) === 1 ? 'status-active' : 'status-inactive'}>
-                        {Number(item.status) === 1 ? 'Đang chạy' : 'Tạm dừng'}
-                      </span>
+                <div className="voucher-footer">
+                    <div className="voucher-date text-muted small">
+                        <CIcon icon={cilCalendar} className="me-1"/>
+                        {item.start_date} - {item.end_date}
                     </div>
-                  </CTableDataCell>
-
-                  <CTableDataCell className="text-end pe-4">
-                    <div className="d-flex justify-content-end gap-2">
-                      <CButton 
-                        color="light" 
-                        size="sm" 
-                        className="rounded-8 border-0 shadow-sm"
-                        onClick={() => openModal(item)}
-                      >
-                        <CIcon icon={cilPencil} className="text-primary"/>
-                      </CButton>
-                      <CButton 
-                        color="light" 
-                        size="sm" 
-                        className="rounded-8 border-0 shadow-sm"
-                        onClick={() => handleDelete(item.id)}
-                      >
-                        <CIcon icon={cilTrash} className="text-danger"/>
-                      </CButton>
+                    <div className="d-flex gap-1">
+                        <CButton color="light" size="sm" onClick={() => openAssignModal(item)}><CIcon icon={cilGift} className="text-bronze" /></CButton>
+                        <CButton color="light" size="sm" onClick={() => openModal(item)}><CIcon icon={cilPencil} className="text-primary"/></CButton>
+                        <CButton color="light" size="sm" onClick={() => handleDelete(item.id)}><CIcon icon={cilTrash} className="text-danger"/></CButton>
                     </div>
-                  </CTableDataCell>
-                </CTableRow>
-              ))}
-              {filteredPromotions.length === 0 && (
-<CTableRow>
-                  <CTableDataCell colSpan={7} className="text-center py-5 text-muted">
-                    Không tìm thấy mã giảm giá nào phù hợp.
-                  </CTableDataCell>
-                </CTableRow>
-              )}
-            </CTableBody>
-          </CTable>
-        </CCardBody>
-      </CCard>
+                </div>
+            </CCard>
+          </CCol>
+        ))}
+      </CRow>
 
-      {/* --- MODAL --- */}
-      <CModal visible={modalVisible} onClose={() => setModalVisible(false)} size="lg" alignment="center" className="modal-modern">
-        <CModalHeader className="bg-light border-0 px-4 pt-4">
-          <CModalTitle className="fw-bold h5">
-            {editingItem ? '🚀 Cập nhật chương trình' : '✨ Tạo mã giảm giá mới'}
+      {/* Modal Chỉnh sửa */}
+      <CModal visible={modalVisible} onClose={() => setModalVisible(false)} alignment="center" className="modal-compact">
+        <CModalHeader className="brand-bronze py-2">
+          <CModalTitle className="fs-6 fw-bold">
+            {editingItem ? '🚀 Cập nhật mã ưu đãi' : '✨ Thiết lập mã mới'}
           </CModalTitle>
         </CModalHeader>
-        <CModalBody className="px-4 pb-4">
-          <CRow className="g-4">
+        <CModalBody>
+          <CRow className="g-2">
             <CCol md={6}>
-              <CFormLabel className="form-label-bold">Mã Voucher</CFormLabel>
-              <CFormInput 
-                className="input-modern text-uppercase fw-bold text-primary" 
-                placeholder="VD: GIAM30K"
-                value={formData.code} 
-                onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})} 
-              />
+              <CFormLabel>Mã Voucher</CFormLabel>
+              <CFormInput value={formData.code} onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})} placeholder="VD: LUMINA10" />
             </CCol>
             <CCol md={6}>
-              <CFormLabel className="form-label-bold">Tên Chương Trình</CFormLabel>
-              <CFormInput 
-                className="input-modern" 
-                placeholder="VD: Ưu đãi hè rực rỡ"
-                value={formData.name} 
-                onChange={(e) => setFormData({...formData, name: e.target.value})} 
-              />
+              <CFormLabel>Tên chương trình</CFormLabel>
+              <CFormInput value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="VD: Ưu đãi hè" />
             </CCol>
-
-            <CCol md={12}>
-              <div className="p-3 rounded-4" style={{background: '#f8fafc', border: '1px solid #f1f5f9'}}>
-                <CFormLabel className="form-label-bold">Phạm Vi Áp Dụng</CFormLabel>
-                <CFormSelect 
-                  className="input-modern mb-3" 
-                  value={formData.scope} 
-                  onChange={(e) => setFormData({...formData, scope: e.target.value, productId: ''})}
-                >
-                    <option value="order">Áp dụng cho toàn bộ đơn hàng của shop</option>
-                    <option value="product">Chỉ áp dụng cho một sản phẩm cụ thể</option>
-                </CFormSelect>
-
-                {formData.scope === 'product' && (
-                  <div>
-                    <CFormLabel className="form-label-bold"><CIcon icon={cilBasket} className="me-1 text-warning"/> Chọn Sản Phẩm Đang Kinh Doanh</CFormLabel>
-                    <CFormSelect 
-                      className="input-modern" 
-                      value={formData.productId} 
-                      onChange={(e) => setFormData({...formData, productId: e.target.value})}
-                    >
-                        <option value="">-- Danh sách sản phẩm của bạn --</option>
-                        {adminProducts.map(p => (
-<option key={p.id} value={p.id}>{p.name} - ({formatCurrency(p.price)})</option>
-                        ))}
-                    </CFormSelect>
-                  </div>
-                )}
-              </div>
-            </CCol>
-
             <CCol md={4}>
-              <CFormLabel className="form-label-bold">Loại Giảm</CFormLabel>
-              <CFormSelect className="input-modern" value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})}>
-                  <option value="percent">Theo phần trăm (%)</option>
-                  <option value="fixed">Số tiền cố định (VNĐ)</option>
+              <CFormLabel>Loại</CFormLabel>
+              <CFormSelect value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})}>
+                <option value="percent">%</option>
+                <option value="fixed">Tiền mặt</option>
               </CFormSelect>
             </CCol>
-            <CCol md={5}>
-              <CFormLabel className="form-label-bold">Giá Trị Giảm</CFormLabel>
-              <CFormInput type="number" className="input-modern fw-bold" value={formData.value} onChange={(e) => setFormData({...formData, value: e.target.value})} />
+            <CCol md={4}>
+              <CFormLabel>Giá trị</CFormLabel>
+              <CFormInput type="number" value={formData.value} onChange={(e) => setFormData({...formData, value: e.target.value})} />
             </CCol>
-            <CCol md={3}>
-              <CFormLabel className="form-label-bold">Giới hạn mã</CFormLabel>
-              <CFormInput type="number" className="input-modern" value={formData.limit} onChange={(e) => setFormData({...formData, limit: e.target.value})} />
+            <CCol md={4}>
+              <CFormLabel>Hạng tối thiểu</CFormLabel>
+              <CFormSelect value={formData.min_tier_id} onChange={(e) => setFormData({...formData, min_tier_id: e.target.value})}>
+                {membershipTiers.map(tier => <option key={tier.id} value={tier.id}>{tier.name}</option>)}
+              </CFormSelect>
             </CCol>
-
+            <CCol md={12}>
+              <CFormLabel>Phạm vi</CFormLabel>
+              <CFormSelect value={formData.scope} onChange={(e) => setFormData({...formData, scope: e.target.value})}>
+                <option value="order">Toàn đơn hàng</option>
+                <option value="product">Sản phẩm cụ thể</option>
+              </CFormSelect>
+            </CCol>
+            {formData.scope === 'product' && (
+              <CCol md={12}>
+                <CFormLabel>Chọn sản phẩm</CFormLabel>
+                <CFormSelect value={formData.productId} onChange={(e) => setFormData({...formData, productId: e.target.value})}>
+                  <option value="">-- Danh sách sản phẩm --</option>
+                  {adminProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </CFormSelect>
+              </CCol>
+            )}
             <CCol md={6}>
-              <CFormLabel className="form-label-bold">Ngày Bắt Đầu</CFormLabel>
-              <CFormInput type="date" className="input-modern" value={formData.startDate} onChange={(e) => setFormData({...formData, startDate: e.target.value})} />
+              <CFormLabel>Bắt đầu</CFormLabel>
+              <CFormInput type="date" value={formData.startDate} onChange={(e) => setFormData({...formData, startDate: e.target.value})} />
             </CCol>
             <CCol md={6}>
-              <CFormLabel className="form-label-bold">Ngày Kết Thúc</CFormLabel>
-              <CFormInput type="date" className="input-modern" value={formData.endDate} onChange={(e) => setFormData({...formData, endDate: e.target.value})} />
+              <CFormLabel>Kết thúc</CFormLabel>
+              <CFormInput type="date" value={formData.endDate} onChange={(e) => setFormData({...formData, endDate: e.target.value})} />
+            </CCol>
+            <CCol md={12}>
+              <CFormLabel>Giới hạn lượt dùng</CFormLabel>
+              <CFormInput type="number" value={formData.limit} onChange={(e) => setFormData({...formData, limit: e.target.value})} />
             </CCol>
           </CRow>
         </CModalBody>
-        <CModalFooter className="bg-light border-0 px-4 pb-4">
-            <CButton color="light" className="fw-bold px-4 py-2 rounded-10" onClick={() => setModalVisible(false)}>Đóng</CButton>
-            <CButton className="btn-create text-white fw-bold px-4 py-2" onClick={handleSave}>
-              {editingItem ? 'Lưu thay đổi' : 'Xác nhận tạo mã'}
-            </CButton>
+        <CModalFooter className="border-0 py-2">
+          <CButton color="light" size="sm" className="rounded-pill px-3" onClick={() => setModalVisible(false)}>Đóng</CButton>
+          <CButton className="brand-bronze rounded-pill px-4 fw-bold shadow-sm" size="sm" onClick={handleSave}>Lưu thông tin</CButton>
+        </CModalFooter>
+      </CModal>
+
+      {/* Modal Gửi tặng */}
+      <CModal visible={assignModalVisible} onClose={() => setAssignModalVisible(false)} alignment="center" className="modal-compact">
+        <CModalHeader className="brand-bronze py-2">
+          <CModalTitle className="fs-6 fw-bold">🎁 Gửi tặng: {selectedVoucher?.code}</CModalTitle>
+        </CModalHeader>
+        <CModalBody>
+          <div className={`p-3 rounded-3 mb-3 border ${sendToAll ? 'bg-primary text-white border-primary shadow-sm' : 'bg-light'}`}>
+            <div className="d-flex justify-content-between align-items-center">
+                <span className="fw-bold small">Tặng cho toàn bộ khách hàng</span>
+                <CFormSwitch 
+                    checked={sendToAll} 
+                    onChange={(e) => handleToggleSendToAll(e.target.checked)} 
+                />
+            </div>
+          </div>
+
+          <CFormLabel className="text-muted small fw-bold mt-2">HOẶC CHỌN THEO HẠNG THÀNH VIÊN</CFormLabel>
+          <CFormSelect 
+            className="mb-3 shadow-sm" 
+            value={selectedTierId} 
+            onChange={(e) => handleSelectTier(e.target.value)}
+          >
+              <option value="">-- Chọn hạng thành viên --</option>
+              {membershipTiers.map(tier => <option key={tier.id} value={tier.id}>Tất cả thành viên {tier.name}</option>)}
+          </CFormSelect>
+
+          <CFormLabel className="text-muted small fw-bold">HOẶC CHỌN KHÁCH HÀNG CỤ THỂ</CFormLabel>
+          <CFormInput 
+            placeholder="Tìm theo tên hoặc email..." 
+            className="mb-2 shadow-sm" 
+            onChange={(e) => setUserSearchTerm(e.target.value)} 
+          />
+          <div className="border rounded-3 overflow-auto shadow-sm" style={{ maxHeight: '180px', backgroundColor: '#fff' }}>
+            <table className="table table-sm mb-0 table-hover">
+              <tbody className="small">
+                {customers.filter(u => u.name?.toLowerCase().includes(userSearchTerm.toLowerCase())).map(user => (
+                  <tr key={user.id} style={{ cursor: 'pointer' }}>
+                    <td width="35" className="text-center align-middle">
+                        <CFormCheck 
+                            checked={selectedUserIds.includes(user.id)} 
+                            onChange={() => handleToggleUser(user.id)} 
+                        />
+                    </td>
+                    <td className="py-2" onClick={() => handleToggleUser(user.id)}>
+                        {user.name} <span className="text-muted" style={{fontSize: '0.7rem'}}>({user.tier_name})</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CModalBody>
+        <CModalFooter className="border-0 py-2">
+          <CButton color="light" size="sm" className="rounded-pill px-3" onClick={() => setAssignModalVisible(false)}>Hủy</CButton>
+          <CButton className="brand-bronze rounded-pill px-4 fw-bold shadow-sm" size="sm" onClick={handleAssignVoucher}>Xác nhận tặng</CButton>
         </CModalFooter>
       </CModal>
     </div>
   )
 }
 
-export default Promotions
+export default Promotions;

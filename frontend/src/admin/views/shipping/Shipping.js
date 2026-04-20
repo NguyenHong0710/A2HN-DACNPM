@@ -5,7 +5,7 @@ import {
   CCard, CCardBody, CCardHeader, CCol, CRow, CTable, CTableBody, CTableHead, 
   CTableHeaderCell, CTableRow, CTableDataCell, CButton, CFormInput, CModal, 
   CModalHeader, CModalTitle, CModalBody, CModalFooter, CBadge, CFormSelect, 
-  CFormLabel, CSpinner
+  CFormLabel, CSpinner, CTooltip
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { 
@@ -103,8 +103,8 @@ const Shipping = () => {
   }
 
   const filteredShipments = shipments.filter(item =>
-    item.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.hoadon?.customer?.toLowerCase().includes(searchTerm.toLowerCase())
+    (item.id && item.id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (item.hoadon?.customer && item.hoadon.customer.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
   const openEditModal = (shipment) => {
@@ -130,7 +130,6 @@ const Shipping = () => {
     setTimeout(() => { handlePrint(); }, 500);
   };
 
-  // Cập nhật màu sắc khớp với text thực tế
   const getStatusColor = (status) => {
     switch (status) {
       case 'Đã giao': case 'Giao thành công': return 'success'
@@ -146,83 +145,139 @@ const Shipping = () => {
     return new Date(isoString).toLocaleString('vi-VN');
   }
 
-  if (loading) return <div className="text-center py-5"><CSpinner color="success"/></div>;
-
   return (
     <div className="shipping-page-container">
-      <CCard className="card-green-theme mb-4 shadow-sm">
-        <CCardHeader className="bg-white pt-3 pb-3 d-flex justify-content-between align-items-center">
-          <h5 className="mb-0 fw-bold"><CIcon icon={cilTruck} className="me-2 text-warning"/> Quản Lý Vận Chuyển</h5>
-          <CFormInput 
-            style={{ width: '250px' }} 
-            placeholder="Tìm mã vận đơn..." 
-            value={searchTerm} 
-            onChange={(e) => setSearchTerm(e.target.value)} 
-          />
+      <style>{`
+        .card-green-theme { background-color: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .table-green-custom thead th { background-color: #f3f4f6; color: #374151; font-weight: 600; border-bottom: 2px solid #e5e7eb; padding: 14px 16px; text-transform: uppercase; font-size: 0.85rem; }
+        
+        .table-green-custom td { 
+          padding: 12px 16px !important; 
+          vertical-align: middle !important; 
+          height: 70px; 
+          position: relative;
+        }
+
+        .absolute-center-wrapper {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 100%;
+        }
+
+        .text-info-custom { color: #0ea5e9; font-weight: 600; }
+      `}</style>
+
+      <CCard className="card-green-theme mb-4">
+        <CCardHeader className="bg-white border-bottom pt-3 pb-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+          <h5 className="mb-0 fw-bold d-flex align-items-center">
+            <CIcon icon={cilTruck} className="me-2 text-warning"/> Quản Lý Vận Chuyển
+          </h5>
+          <div className="position-relative" style={{ minWidth: '300px' }}>
+            <CFormInput 
+              className="ps-5"
+              placeholder="Tìm mã vận đơn, tên khách..." 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)} 
+            />
+            <CIcon icon={cilSearch} className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" />
+          </div>
         </CCardHeader>
 
         <CCardBody>
-          <CTable hover responsive className="table-green-custom">
-            <CTableHead>
-              <CTableRow>
-                <CTableHeaderCell>Mã Vận Đơn</CTableHeaderCell>
-                <CTableHeaderCell>Khách Hàng</CTableHeaderCell>
-                <CTableHeaderCell>Trạng Thái</CTableHeaderCell>
-                <CTableHeaderCell>Dự Kiến Giao</CTableHeaderCell>
-                <CTableHeaderCell className="text-end">Hành Động</CTableHeaderCell>
-              </CTableRow>
-            </CTableHead>
-            <CTableBody>
-              {filteredShipments.map((item) => (
-                <CTableRow key={item.id}>
-                  <CTableDataCell className="fw-bold">{item.id}</CTableDataCell>
-                  <CTableDataCell>
-                    <div>{item.hoadon?.customer}</div>
-                    <small className="text-muted">Đơn: {item.hoadon?.id}</small>
-                  </CTableDataCell>
-                  <CTableDataCell>
-                    <CBadge color={getStatusColor(item.status)}>{item.status}</CBadge>
-                  </CTableDataCell>
-                  <CTableDataCell className="small">{formatDateTime(item.estimatedTime)}</CTableDataCell>
-                  <CTableDataCell className="text-end">
-                    <div className="d-flex justify-content-end gap-2">
-                        {/* SỬA LẠI VALUE CÁC OPTION ĐỂ KHỚP VỚI DATABASE */}
+          {loading ? (
+            <div className="text-center py-5"><CSpinner color="success"/></div>
+          ) : (
+            <CTable hover responsive className="table-green-custom mb-0">
+              <CTableHead>
+                <CTableRow>
+                  <CTableHeaderCell style={{ width: '15%' }}>Mã Vận Đơn</CTableHeaderCell>
+                  <CTableHeaderCell style={{ width: '25%' }}>Khách Hàng</CTableHeaderCell>
+                  <CTableHeaderCell className="text-center" style={{ width: '20%' }}>Trạng Thái</CTableHeaderCell>
+                  <CTableHeaderCell style={{ width: '20%' }}>Dự Kiến Giao</CTableHeaderCell>
+                  <CTableHeaderCell className="text-end" style={{ width: '20%' }}>Hành Động</CTableHeaderCell>
+                </CTableRow>
+              </CTableHead>
+              <CTableBody>
+                {filteredShipments.map((item) => (
+                  <CTableRow key={item.id}>
+                    <CTableDataCell className="text-info-custom">{item.id}</CTableDataCell>
+                    <CTableDataCell>
+                      <div className="fw-semibold">{item.hoadon?.customer || 'N/A'}</div>
+                      <small className="text-muted">Đơn: #{item.hoadon?.id}</small>
+                    </CTableDataCell>
+                    
+                    <CTableDataCell className="text-center">
+                      <div className="absolute-center-wrapper">
+                        <CBadge color={getStatusColor(item.status)} style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
+                          {item.status || 'Chờ lấy hàng'}
+                        </CBadge>
+                      </div>
+                    </CTableDataCell>
+
+                    <CTableDataCell>
+                        <div className="d-flex align-items-center small text-muted">
+                            <CIcon icon={cilClock} className="me-1" size="sm"/>
+                            {formatDateTime(item.estimatedTime)}
+                        </div>
+                    </CTableDataCell>
+
+                    <CTableDataCell className="text-end">
+                      <div className="d-flex justify-content-end align-items-center gap-2">
                         <select 
                             className="form-select form-select-sm w-auto"
-                            value={item.status}
+                            value={item.status || 'Chờ lấy hàng'}
                             onChange={(e) => handleUpdateStatusQuick(item.id, e.target.value)}
+                            style={{ fontSize: '0.85rem', height: '31px' }}
                         >
                             <option value="Chờ lấy hàng">Chờ lấy hàng</option>
                             <option value="Đang giao">Đang giao</option>
                             <option value="Đã giao">Đã giao</option>
                             <option value="Giao thất bại">Giao thất bại</option>
                         </select>
-                        <CButton color="light" size="sm" onClick={() => openEditModal(item)}><CIcon icon={cilPencil}/></CButton>
-                        <CButton color="primary" size="sm" onClick={() => triggerPrint(item)}><CIcon icon={cilPrint}/></CButton>
-                    </div>
-                  </CTableDataCell>
-                </CTableRow>
-              ))}
-            </CTableBody>
-          </CTable>
+                        
+                        <CTooltip content="Chỉnh sửa">
+                          <CButton color="link" className="p-1" onClick={() => openEditModal(item)}>
+                            <CIcon icon={cilPencil} className="text-primary"/>
+                          </CButton>
+                        </CTooltip>
+
+                        <CTooltip content="In vận đơn">
+                          <CButton color="link" className="p-1" onClick={() => triggerPrint(item)}>
+                            <CIcon icon={cilPrint} className="text-dark"/>
+                          </CButton>
+                        </CTooltip>
+                      </div>
+                    </CTableDataCell>
+                  </CTableRow>
+                ))}
+              </CTableBody>
+            </CTable>
+          )}
         </CCardBody>
       </CCard>
 
-      {/* MODAL CẬP NHẬT - CŨNG CẦN KHỚP OPTION */}
-      <CModal visible={modalVisible} onClose={() => setModalVisible(false)} alignment="center">
-        <CModalHeader><CModalTitle>Cập Nhật Vận Đơn</CModalTitle></CModalHeader>
+      {/* MODAL CẬP NHẬT CHI TIẾT */}
+      <CModal visible={modalVisible} onClose={() => setModalVisible(false)} alignment="center" size="sm">
+        <CModalHeader className="border-0">
+          <CModalTitle className="fw-bold">Cập Nhật Vận Đơn</CModalTitle>
+        </CModalHeader>
         <CModalBody>
           <div className="mb-3">
-            <CFormLabel>Phương thức</CFormLabel>
-            <CFormSelect value={formData.method} onChange={(e) => setFormData({...formData, method: e.target.value})}>
+            <CFormLabel className="small fw-bold">Phương thức</CFormLabel>
+            <CFormSelect size="sm" value={formData.method} onChange={(e) => setFormData({...formData, method: e.target.value})}>
               <option value="Giao nội thành">Giao nội thành</option>
               <option value="Giao nhanh">Giao nhanh</option>
               <option value="Tự giao">Tự giao</option>
             </CFormSelect>
           </div>
           <div className="mb-3">
-            <CFormLabel>Trạng thái</CFormLabel>
-            <CFormSelect value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
+            <CFormLabel className="small fw-bold">Trạng thái</CFormLabel>
+            <CFormSelect size="sm" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
               <option value="Chờ lấy hàng">Chờ lấy hàng</option>
               <option value="Đang giao">Đang giao</option>
               <option value="Đã giao">Đã giao</option>
@@ -230,16 +285,19 @@ const Shipping = () => {
             </CFormSelect>
           </div>
           <div className="mb-3">
-            <CFormLabel>Ngày dự kiến</CFormLabel>
-            <CFormInput type="datetime-local" value={formData.estimatedTime} onChange={(e) => setFormData({...formData, estimatedTime: e.target.value})} />
+            <CFormLabel className="small fw-bold">Ngày dự kiến</CFormLabel>
+            <CFormInput size="sm" type="datetime-local" value={formData.estimatedTime} onChange={(e) => setFormData({...formData, estimatedTime: e.target.value})} />
           </div>
         </CModalBody>
-        <CModalFooter>
-          <CButton color="secondary" onClick={() => setModalVisible(false)}>Đóng</CButton>
-          <CButton color="success" className="text-white" onClick={handleSave}>Lưu thay đổi</CButton>
+        <CModalFooter className="border-0">
+          <CButton color="secondary" size="sm" onClick={() => setModalVisible(false)}>Hủy</CButton>
+          <CButton color="success" size="sm" className="text-white fw-bold" onClick={handleSave}>
+            <CIcon icon={cilSave} className="me-1"/> Lưu lại
+          </CButton>
         </CModalFooter>
       </CModal>
 
+      {/* PHẦN IN ẨN */}
       <div style={{ display: 'none' }}>
         <PrintTemplate ref={componentRef} data={currentPrintItem} />
       </div>

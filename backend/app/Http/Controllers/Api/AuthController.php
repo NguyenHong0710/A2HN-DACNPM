@@ -42,6 +42,9 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
+                'avatar' => $user->avatar,
+                // BỔ SUNG DÒNG NÀY: Trả về hạng để React mở khóa Voucher
+                'membership_tier_id' => $user->membership_tier_id, 
             ]
         ], 200);
     }
@@ -66,7 +69,6 @@ class AuthController extends Controller
         ], now()->addMinutes(10));
 
         try {
-            // ĐÃ SỬA: Dùng Mail::send gọi file view 'emails.otp'
             Mail::send('emails.otp', ['otp' => $otp, 'title' => 'Xác Thực Đăng Ký Tài Khoản'], function ($message) use ($request) {
                 $message->to($request->email)->subject('Lumina Jewelry - Xác thực tài khoản');
             });
@@ -100,6 +102,8 @@ class AuthController extends Controller
             'password' => $cachedData['password'],
             'role' => 'customer',
             'status' => 'Active',
+            // Mặc định khi đăng ký là hạng 1 (Mới)
+            'membership_tier_id' => 1, 
         ]);
 
         Cache::forget('reg_token_' . $request->token);
@@ -121,7 +125,6 @@ class AuthController extends Controller
         ], now()->addMinutes(10));
 
         try {
-            // ĐÃ SỬA: Dùng Mail::send gọi file view 'emails.otp'
             Mail::send('emails.otp', ['otp' => $otp, 'title' => 'Khôi Phục Mật Khẩu'], function ($message) use ($request) {
                 $message->to($request->email)->subject('Lumina Jewelry - Khôi phục mật khẩu');
             });
