@@ -10,44 +10,63 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ShippingController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DoanhthuController;
+use App\Http\Controllers\Api\PromotionController;
+use App\Http\Controllers\Api\NewsController;
+use App\Http\Controllers\Api\ReviewController; // --- THÊM DÒNG NÀY ---
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
 */
-use App\Http\Controllers\Api\PromotionController;
-use App\Http\Controllers\Api\NewsController; // Thêm controller Tin Tức
-Route::get('/news', [NewsController::class, 'index']); // Xem danh sách bài viết
-Route::get('/news/{id}', [NewsController::class, 'show']); // Xem chi tiết 1 bài viết
-// Nhóm các API cho Promotions
+
+// --- 1. PUBLIC ROUTES (KHÔNG CẦN LOGIN) ---
+Route::get('/news', [NewsController::class, 'index']);
+Route::get('/news/{id}', [NewsController::class, 'show']);
+
+// Nhóm Public Promotions
 Route::prefix('promotions')->group(function () {
-    Route::get('/', [PromotionController::class, 'index']);           // Lấy danh sách
-    Route::get('/products', [PromotionController::class, 'getProducts']); // Lấy SP để đưa vào Select Box
-    Route::post('/create', [PromotionController::class, 'store']);        // Tạo mã mới
-    Route::post('/update', [PromotionController::class, 'update']);       // Cập nhật mã
-    Route::delete('/delete', [PromotionController::class, 'destroy']);    // Xóa mã
-    Route::post('/toggle-status', [PromotionController::class, 'toggleStatus']); // Bật/tắt
+    Route::get('/', [PromotionController::class, 'index']);
+    Route::get('/products', [PromotionController::class, 'getProducts']);
+    // THÊM DÒNG NÀY VÀO ĐÂY ĐỂ REACT GỌI ĐƯỢC DANH SÁCH HẠNG
+    Route::get('/membership-tiers', [PromotionController::class, 'getMembershipTiers']);
 });
-// --- 1. XÁC THỰC (PUBLIC) ---
+
+/** * ROUTE FIX LỖI 401: Lấy danh sách khách hàng để tặng voucher
+ * Đưa ra ngoài middleware auth để React có thể gọi mà không cần gửi auth_token ngay lập tức.
+ */
+Route::get('/admin/users-for-assignment', [PromotionController::class, 'getUsersForAssignment']);
+
 Route::post('/login', [AuthController::class, 'login']); 
 Route::post('/register/init', [AuthController::class, 'registerInit']);
 Route::post('/register/verify', [AuthController::class, 'registerVerify']);
 Route::post('/vouchers/validate', [PromotionController::class, 'validateVoucher']);
-// --- 2. PUBLIC ROUTES (XEM SẢN PHẨM/DANH MỤC KHÔNG CẦN LOGIN) ---
+
 Route::get('/categories', [CategoryController::class, 'index']); 
 Route::get('/categories/{id}', [CategoryController::class, 'show']);
 Route::get('/products', [ProductController::class, 'index']); 
 Route::get('/products/search', [ProductController::class, 'search']); 
 Route::get('/products/{id}', [ProductController::class, 'show']);
 
+// --- ROUTE ĐÁNH GIÁ PUBLIC (XEM ĐÁNH GIÁ) ---
+// Sửa getByProduct thành index cho khớp với Controller
+Route::get('/products/{id}/reviews', [App\Http\Controllers\Api\ReviewController::class, 'index']); // <-- THÊM DÒNG NÀY
 
-// --- 3. PROTECTED ROUTES (YÊU CẦU ĐĂNG NHẬP) ---
+
+// --- 2. PROTECTED ROUTES (YÊU CẦU ĐĂNG NHẬP) ---
 Route::middleware(['auth:sanctum'])->group(function () {
     
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
         return response()->json($request->user());
+    });
+
+    // --- QUẢN LÝ PROMOTIONS (CẦN AUTH) ---
+    Route::prefix('promotions')->group(function () {
+        Route::post('/create', [PromotionController::class, 'store']);
+        Route::post('/update', [PromotionController::class, 'update']);
+        Route::delete('/delete', [PromotionController::class, 'destroy']);
+        Route::post('/toggle-status', [PromotionController::class, 'toggleStatus']);
     });
 
     // --- HỒ SƠ CÁ NHÂN ---
@@ -66,6 +85,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/products/{id}', [ProductController::class, 'update']);
     Route::delete('/products/{id}', [ProductController::class, 'destroy']);
     Route::post('/products/{id}/add-stock', [ProductController::class, 'addStock']);
+
     // --- QUẢN LÝ NGƯỜI DÙNG (ADMIN) ---
     Route::get('/users', [UserController::class, 'index']);
     Route::put('/users/{id}', [UserController::class, 'update']);
@@ -76,29 +96,33 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/admin/logs/cleanup', [UserController::class, 'deleteOldLogs']);
 
     // --- QUẢN LÝ HÓA ĐƠN (INVOICES) ---
-    // Route lấy danh sách cho trang Hóa Đơn (khớp với React)
     Route::get('/all-invoices', [HoadonController::class, 'index']);
     Route::get('/get_invoices', [HoadonController::class, 'index']); 
     Route::post('/update_order_status', [HoadonController::class, 'update']);
     
     // Route cho khách hàng
-    Route::post('/create_invoice', [HoadonController::class, 'store']); // Tạo đơn hàng mới
+    Route::post('/create_invoice', [HoadonController::class, 'store']); 
     Route::get('/my-invoices', [HoadonController::class, 'getMyInvoices']);
     Route::post('/cancel_order', [HoadonController::class, 'cancelOrder']);
 
     // --- QUẢN LÝ VẬN CHUYỂN (SHIPPING) ---
-    // Route lấy danh sách (khớp với fetch trong Shipping.js)
     Route::get('/get_shipping', [ShippingController::class, 'index']);
-    
-    // Route cập nhật trạng thái/chi tiết (khớp với handleSave/handleUpdateStatusQuick)
     Route::post('/update_shipping', [ShippingController::class, 'update']);
 
+    // --- HỆ THỐNG ĐÁNH GIÁ (CẦN AUTH) ---
+    Route::post('/reviews', [ReviewController::class, 'store']); // <-- THÊM DÒNG NÀY
+    Route::delete('/reviews/{id}', [ReviewController::class, 'destroy']); // <-- THÊM DÒNG NÀY
+    Route::get('/all-reviews-admin', [ReviewController::class, 'getAllReviewsForAdmin']);
+Route::post('/reviews/{id}/reply', [ReviewController::class, 'reply']);
     // --- THỐNG KÊ (DASHBOARD) ---
     Route::prefix('admin')->group(function () {
         Route::get('/revenue', [DoanhthuController::class, 'getRevenue']);
         Route::get('/inventory', [DoanhthuController::class, 'getInventory']);
         Route::get('/top-products', [DoanhthuController::class, 'getTopProducts']);
         Route::post('/update-stock', [DoanhthuController::class, 'updateStock']);
+        
+        // Route xử lý việc tặng voucher vẫn giữ trong đây để bảo mật (chặn spam)
+        Route::post('/assign-voucher', [PromotionController::class, 'assignVoucher']);
     });
 
     // --- CÁC ROUTE TIỆN ÍCH KHÁC ---

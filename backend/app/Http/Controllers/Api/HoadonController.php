@@ -5,16 +5,18 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Hoadon;
 use App\Models\ChiTietHoadon; 
+use App\Models\Product;
+use App\Models\Shipping;
+use App\Http\Controllers\Api\PromotionController; // Import để gọi logic trừ voucher
 use Illuminate\Http\Request;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use App\Models\Shipping;
 
 class HoadonController extends Controller
 {
     /**
-     * TẠO ĐƠN HÀNG MỚI (Dành cho trang Checkout)
+     * TẠO ĐƠN HÀNG MỚI (Đã tích hợp trừ số lượng Voucher)
      */
     public function store(Request $request)
     {
@@ -26,6 +28,7 @@ class HoadonController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Vui lòng đăng nhập để đặt hàng'], 401);
             }
 
+            // 1. Tính toán số tiền gốc từ giỏ hàng
             $calculatedAmount = 0;
             if ($request->has('items') && is_array($request->items)) {
                 foreach ($request->items as $item) {
@@ -37,24 +40,29 @@ class HoadonController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Giỏ hàng trống'], 400);
             }
 
-            // 2. Tạo hóa đơn chính
+            // 2. Lấy số tiền thực tế sau khi áp mã (Client gửi lên trường 'amount' đã trừ)
+            // Nếu Client không gửi, mặc định dùng số tiền tính toán được
+            $finalAmount = $request->amount ?? $calculatedAmount;
+
+            // 3. Tạo hóa đơn chính (Giữ đúng các cột hiện có trong DB của bạn)
             $hoadon = Hoadon::create([
                 'user_id'         => $user->id,
                 'customer'        => $request->fullName,
                 'phone'           => $request->phone,
                 'address'         => $request->address,
-                'amount'          => $calculatedAmount, 
+                'amount'          => $finalAmount, 
                 'payment_method'  => $request->payment_method,
                 'deliveryStatus'  => 'pending', 
             ]);
 
+            // Cập nhật thông tin nhanh cho User
             $user->update([
                 'name'    => $request->fullName, 
                 'phone'   => $request->phone,
                 'address' => $request->address,
             ]);
 
-            // 3. Lưu chi tiết từng sản phẩm
+            // 4. Lưu chi tiết từng sản phẩm
             foreach ($request->items as $item) {
                 $rawImage = $item['images'] ?? $item['image'] ?? $item['product_image'] ?? $item['thumb'] ?? null;
                 $imagePath = is_array($rawImage) ? ($rawImage[0] ?? null) : $rawImage;
@@ -65,6 +73,12 @@ class HoadonController extends Controller
                     'price'  => $item['price'] ?? 0,
                     'images' => $imagePath, 
                 ]);
+            }
+
+            // 5. QUAN TRỌNG: Trừ số lượng Voucher nếu có áp dụng mã
+            if ($request->has('voucherCode') && !empty($request->voucherCode)) {
+                $promoController = new PromotionController();
+                $promoController->useVoucher($request->voucherCode);
             }
 
             DB::commit();
@@ -98,7 +112,7 @@ class HoadonController extends Controller
     }
 
     /**
-     * Lấy hóa đơn của RIÊNG người dùng (Order History)
+     * Lấy hóa đơn cá nhân
      */
     public function getMyInvoices(Request $request)
     {
@@ -123,7 +137,7 @@ class HoadonController extends Controller
     }
 
     /**
-     * CẬP NHẬT TRẠNG THÁI (Đã tích hợp logic Xác nhận & Vận chuyển)
+     * CẬP NHẬT TRẠNG THÁI (Đã bao gồm trừ kho)
      */
     public function update(Request $request)
     {
@@ -135,30 +149,26 @@ class HoadonController extends Controller
             $oldStatus = $hoadon->deliveryStatus;
             $newStatus = $request->status;
 
-            // 1. LOGIC CẬP NHẬT KHO: Chỉ chạy khi trạng thái chuyển THÀNH 'Đã giao'
+            // 1. Logic trừ kho khi "Đã giao"
             if ($newStatus === 'Đã giao' && $oldStatus !== 'Đã giao') {
                 foreach ($hoadon->chiTiet as $item) {
-                    // Tìm sản phẩm theo tên (vì bảng chi tiết của bạn đang lưu tên) 
-                    // Hoặc tốt nhất là theo product_id nếu bạn có lưu cột đó
                     $product = Product::where('name', $item->name)->first();
-                    
                     if ($product) {
                         if ($product->stock < $item->qty) {
-                            throw new Exception("Sản phẩm '{$product->name}' không đủ tồn kho để giao hàng.");
+                            throw new Exception("Sản phẩm '{$product->name}' không đủ tồn kho.");
                         }
-                        // Trừ số lượng tồn kho
                         $product->decrement('stock', $item->qty);
                     }
                 }
             }
 
-            // 2. Cập nhật trạng thái hóa đơn
+            // 2. Cập nhật trạng thái
             $hoadon->update(['deliveryStatus' => $newStatus]);
 
-            // 3. Xác định trạng thái vận chuyển tương ứng
+            // 3. Cập nhật vận chuyển
             $shippingStatus = ($newStatus === 'Đã xác nhận') ? 'Chờ lấy hàng' : $newStatus;
-
             $shipping = Shipping::where('orderId', $hoadon->id)->first();
+            
             if ($shipping) {
                 $shipping->update(['status' => $shippingStatus]);
             } else {
@@ -175,7 +185,7 @@ class HoadonController extends Controller
             }
 
             DB::commit();
-            return response()->json(['status' => 'success', 'message' => 'Cập nhật trạng thái và kho hàng thành công!']);
+            return response()->json(['status' => 'success', 'message' => 'Cập nhật thành công!']);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
@@ -201,7 +211,7 @@ class HoadonController extends Controller
     }
 
     /**
-     * Format dữ liệu trả về cho Frontend
+     * Format dữ liệu trả về
      */
     private function formatInvoices($invoices)
     {

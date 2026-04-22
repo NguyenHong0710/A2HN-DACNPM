@@ -1,0 +1,11 @@
+# Chặn node_modules ở mọi cấp độ
+node_modules/
+**/node_modules/
+
+# Chặn các file môi trường
+.env
+.env.*
+
+# Chặn các file rác hệ thống
+.DS_Store
+Thumbs.db

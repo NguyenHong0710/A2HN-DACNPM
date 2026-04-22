@@ -43,4 +43,5 @@ public function getImagesAttribute($value)
         return asset('storage/' . $path);
     }, $images);
 }
+public function reviews() { return $this->hasMany(Review::class); }
 }

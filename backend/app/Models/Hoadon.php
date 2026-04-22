@@ -43,4 +43,9 @@ class Hoadon extends Model
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
     }
+    public function shipping()
+{
+    // 'orderId' là cột khóa ngoại nằm bên bảng shippings trỏ về id của hoadons
+    return $this->hasOne(Shipping::class, 'orderId', 'id');
+}
 }

@@ -23,9 +23,6 @@ const Invoice = () => {
   // State Modal
   const [modalVisible, setModalVisible] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState(null)
-  const [cancelModalVisible, setCancelModalVisible] = useState(false)
-  const [invoiceToCancel, setInvoiceToCancel] = useState(null)
-  const [cancelReason, setCancelReason] = useState('')
 
   // --- 1. LẤY DỮ LIỆU TỪ API ---
   const fetchInvoices = async () => {
@@ -72,7 +69,6 @@ const Invoice = () => {
           id: id,      
           status: newStatus 
         })
-      
       });
       const result = await res.json();
 
@@ -87,18 +83,7 @@ const Invoice = () => {
     }
   };
 
-  // --- 3. XỬ LÝ HỦY ĐƠN HÀNG QUA MODAL ---
-  const handleConfirmCancel = async () => {
-    if (!cancelReason.trim()) {
-      alert('Vui lòng nhập lý do hủy đơn hàng!');
-      return;
-    }
-    
-    await handleUpdateStatus(invoiceToCancel.id, 'Hủy đơn');
-    setCancelModalVisible(false);
-  }
-
-  // --- LOGIC TÌM KIẾM ---
+  // Logic tìm kiếm
   const filteredInvoices = invoices.filter(item =>
     (item.id && item.id.toString().toLowerCase().includes(searchTerm.toLowerCase())) ||
     (item.customer && item.customer.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -123,6 +108,12 @@ const Invoice = () => {
       default: return 'secondary';
     }
   };
+
+  // LOGIC HIỂN THỊ TEXT VẬN CHUYỂN THEO YÊU CẦU
+  const renderDeliveryText = (status) => {
+    if (status === 'Đã xác nhận') return 'Chờ lấy hàng';
+    return status || 'Chờ xử lý';
+  }
 
   const renderPaymentMethod = (method) => {
     if (method === 'Chuyển khoản' || method === 'Online') {
@@ -149,7 +140,7 @@ const Invoice = () => {
         "Ngày Tạo": inv.date,
         "Tổng Tiền (VNĐ)": inv.amount,
         "Phương Thức": inv.payment_method || 'Tiền mặt',
-        "Vận Chuyển": inv.deliveryStatus,
+        "Vận Chuyển": renderDeliveryText(inv.deliveryStatus),
         "Địa Chỉ": inv.address,
         "Số Điện Thoại": inv.phone
     }));
@@ -163,7 +154,25 @@ const Invoice = () => {
       <style>{`
         .card-green-theme { background-color: #ffffff; color: #2c2c2c; border: 1px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .table-green-custom thead th { background-color: #f3f4f6; color: #374151; font-weight: 600; border-bottom: 2px solid #e5e7eb; padding: 14px 16px; text-transform: uppercase; font-size: 0.85rem; }
-        .table-green-custom td { padding: 16px; vertical-align: middle; border-bottom: 1px solid #f1f1f1; }
+        
+        .table-green-custom td { 
+          padding: 12px 16px !important; 
+          vertical-align: middle !important; 
+          height: 70px; 
+          position: relative; 
+        }
+
+        .absolute-center-wrapper {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 100%;
+        }
+
         .text-price { color: #dc2626; font-weight: 700; }
         .invoice-box { border: 1px solid #e5e7eb; padding: 20px; border-radius: 10px; background-color: #ffffff; color: #333; }
         .info-label { color: #6b7280; font-size: 0.9rem; margin-bottom: 2px; }
@@ -202,34 +211,49 @@ const Invoice = () => {
                     </CTableRow>
                 </CTableHead>
                 <CTableBody>
-                {filteredInvoices.map((item) => (
-                  <CTableRow key={item.id}>
-                    <CTableDataCell className="fw-bold text-info">{item.id}</CTableDataCell>
-                    <CTableDataCell>{item.customer || 'N/A'}</CTableDataCell>
-                    <CTableDataCell className="text-price">{formatCurrency(item.amount)}</CTableDataCell>
-                    <CTableDataCell>{renderPaymentMethod(item.payment_method)}</CTableDataCell>
-                    <CTableDataCell className="text-center">
-                        <CBadge color={getStatusColor(item.deliveryStatus)}>{item.deliveryStatus}</CBadge>
-                    </CTableDataCell>
-                    <CTableDataCell className="text-end">
-                        <div className="d-flex align-items-center justify-content-end gap-1">
-                            <select 
-                                className="form-select form-select-sm w-auto me-2"
-                                value={item.deliveryStatus}
-                                onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
-                                style={{ fontSize: '0.8rem', borderColor: '#e5e7eb' }}
-                            >
-                                <option value="Chờ xử lý">Chờ xử lý</option>
-                                <option value="Đã xác nhận">Đã xác nhận</option> 
-                                
-                            </select>
-
-                            <CTooltip content="Chi tiết"><CButton color="link" className="p-1" onClick={() => openInvoiceDetail(item)}><CIcon icon={cilInfo} /></CButton></CTooltip>
-                            <CTooltip content="In"><CButton color="link" className="p-1 ms-1" onClick={handlePrint}><CIcon icon={cilPrint} /></CButton></CTooltip>
+                  {filteredInvoices.map((item) => (
+                    <CTableRow key={item.id}>
+                      <CTableDataCell className="fw-bold text-info">{item.id}</CTableDataCell>
+                      <CTableDataCell>{item.customer || 'N/A'}</CTableDataCell>
+                      <CTableDataCell className="text-price">{formatCurrency(item.amount)}</CTableDataCell>
+                      <CTableDataCell>{renderPaymentMethod(item.payment_method)}</CTableDataCell>
+                      
+                      {/* CỘT VẬN CHUYỂN - HIỂN THỊ "CHỜ LẤY HÀNG" NẾU ĐÃ XÁC NHẬN */}
+                      <CTableDataCell className="text-center">
+                        <div className="absolute-center-wrapper">
+                          <CBadge color={getStatusColor(item.deliveryStatus)} style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
+                            {renderDeliveryText(item.deliveryStatus)}
+                          </CBadge>
                         </div>
-                    </CTableDataCell>
-                  </CTableRow>
-                ))}
+                      </CTableDataCell>
+
+                      {/* CỘT HÀNH ĐỘNG */}
+                      <CTableDataCell className="text-end">
+                        <div className="d-flex align-items-center justify-content-end gap-1">
+                          <select 
+                            className="form-select form-select-sm w-auto me-2"
+                            value={item.deliveryStatus === 'Đã xác nhận' ? 'Đã xác nhận' : 'Chờ xử lý'}
+                            onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
+                            style={{ fontSize: '0.85rem', height: '31px' }}
+                          >
+                            <option value="Chờ xử lý">Chờ xử lý</option>
+                            <option value="Đã xác nhận">Đã xác nhận</option> 
+                          </select>
+
+                          <CTooltip content="Chi tiết">
+                            <CButton color="link" className="p-1" onClick={() => openInvoiceDetail(item)}>
+                              <CIcon icon={cilInfo} />
+                            </CButton>
+                          </CTooltip>
+                          <CTooltip content="In">
+                            <CButton color="link" className="p-1 ms-1" onClick={handlePrint}>
+                              <CIcon icon={cilPrint} />
+                            </CButton>
+                          </CTooltip>
+                        </div>
+                      </CTableDataCell>
+                    </CTableRow>
+                  ))}
                 </CTableBody>
             </CTable>
           )}
@@ -242,7 +266,6 @@ const Invoice = () => {
           <CModalBody className="pt-0">
             {selectedInvoice && (
               <div className="invoice-box shadow-none border-0 pt-0">
-                {/* Phần Header Modal */}
                 <CRow className="mb-4 align-items-center border-bottom pb-3">
                     <CCol xs={6}>
                       <h4 className="fw-bold mb-0" style={{ color: "#D99485" }}>Lumina Jewelry</h4>
@@ -254,25 +277,21 @@ const Invoice = () => {
                     </CCol>
                 </CRow>
 
-                {/* THÊM MỚI: THÔNG TIN NGƯỜI ĐẶT */}
                 <CRow className="mb-4 bg-light p-3 rounded mx-0">
                     <CCol md={6}>
                       <div className="info-label"><CIcon icon={cilUser} className="me-1"/> Người đặt hàng</div>
                       <div className="info-value">{selectedInvoice.customer || 'N/A'}</div>
-                      
                       <div className="info-label"><CIcon icon={cilPhone} className="me-1"/> Số điện thoại</div>
                       <div className="info-value">{selectedInvoice.phone || 'Chưa cung cấp'}</div>
                     </CCol>
                     <CCol md={6}>
                       <div className="info-label"><CIcon icon={cilLocationPin} className="me-1"/> Địa chỉ giao hàng</div>
                       <div className="info-value">{selectedInvoice.address || 'Chưa cập nhật địa chỉ'}</div>
-                      
                       <div className="info-label">Phương thức thanh toán</div>
                       <div className="info-value">{selectedInvoice.payment_method || 'Tiền mặt'}</div>
                     </CCol>
                 </CRow>
 
-                {/* Danh sách sản phẩm */}
                 <div className="mb-2 fw-bold"><CIcon icon={cilDescription} className="me-1"/> Danh sách sản phẩm</div>
                 <CTable hover responsive bordered className="mb-3">
                     <CTableHead className="table-light">

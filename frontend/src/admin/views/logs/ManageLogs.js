@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { FiRefreshCw, FiTrash2, FiClock, FiUser, FiActivity, FiMail, FiGlobe } from 'react-icons/fi';
 
 const ActivityLogs = () => {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // 1. Hàm lấy danh sách log
+    // 1. Hàm lấy danh sách log (Giữ nguyên logic kết nối của bạn)
     const fetchLogs = async () => {
         setLoading(true);
         try {
@@ -14,14 +15,7 @@ const ActivityLogs = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            // Lấy dữ liệu từ Laravel Paginate (data.data)
             const rawLogs = response.data.data || [];
-
-            /**
-             * LOGIC LỌC:
-             * Loại bỏ các dòng không có user_id hoặc là Khách vãng lai
-             * (Dành cho các dữ liệu cũ còn sót lại trong DB)
-             */
             const filteredLogs = rawLogs.filter(log => 
                 log.user_id !== null && 
                 log.user_name !== "Khách vãng lai"
@@ -35,7 +29,7 @@ const ActivityLogs = () => {
         }
     };
 
-    // 2. Hàm dọn dẹp (Xóa sạch toàn bộ 100%)
+    // 2. Hàm dọn dẹp (Giữ nguyên logic kết nối của bạn)
     const handleCleanup = async () => {
         const confirmDelete = window.confirm(
             "CẢNH BÁO: Bạn có chắc chắn muốn XÓA SẠCH TOÀN BỘ nhật ký không? Hành động này không thể hoàn tác!"
@@ -44,14 +38,10 @@ const ActivityLogs = () => {
         if (confirmDelete) {
             try {
                 const token = localStorage.getItem('token');
-                // Gọi API dọn dẹp
                 const response = await axios.delete('http://127.0.0.1:8000/api/admin/logs/cleanup', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-
                 alert(response.data.message || "Đã xóa sạch toàn bộ nhật ký!");
-                
-                // Sau khi xóa thành công, làm trống danh sách trên giao diện ngay lập tức
                 setLogs([]); 
             } catch (error) {
                 console.error("Lỗi khi dọn dẹp:", error);
@@ -64,95 +54,156 @@ const ActivityLogs = () => {
         fetchLogs();
     }, []);
 
-    return (
-        <div className="container-fluid px-4">
-            <h1 className="mt-4">Quản lý Nhật ký hệ thống</h1>
-            <ol className="breadcrumb mb-4">
-                <li className="breadcrumb-item active">Lịch sử hoạt động của thành viên</li>
-            </ol>
+    // Hệ thống Style mới để fix lỗi UI nhảy chữ
+    const styles = {
+        container: { padding: '30px', backgroundColor: '#f8f9fa', minHeight: '100vh', fontFamily: "'Inter', sans-serif" },
+        headerSection: { 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', // Fix lỗi nhảy chữ bằng cách căn giữa theo trục dọc
+            marginBottom: '30px',
+            background: '#fff',
+            padding: '20px',
+            borderRadius: '12px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+        },
+        title: { fontSize: '24px', fontWeight: 'bold', color: '#1a1a1a', margin: 0 },
+        subtitle: { color: '#666', fontSize: '14px', margin: '5px 0 0 0' },
+        card: { 
+            backgroundColor: '#fff', 
+            borderRadius: '12px', 
+            boxShadow: '0 4px 20px rgba(0,0,0,0.05)', 
+            border: 'none'
+        },
+        table: { width: '100%', borderCollapse: 'collapse' },
+        th: { 
+            padding: '15px 20px', 
+            textAlign: 'left', 
+            fontSize: '12px', 
+            fontWeight: '600', 
+            color: '#888', 
+            textTransform: 'uppercase',
+            backgroundColor: '#fafafa',
+            borderBottom: '1px solid #eee'
+        },
+        td: { padding: '15px 20px', fontSize: '14px', borderBottom: '1px solid #f5f5f5', color: '#333' },
+        badgeAdmin: { 
+            padding: '4px 10px', 
+            borderRadius: '6px', 
+            backgroundColor: '#fff5f5', 
+            color: '#e53935', 
+            fontSize: '12px', 
+            fontWeight: 'bold',
+            border: '1px solid #ffcdd2'
+        },
+        badgeUser: { 
+            padding: '4px 10px', 
+            borderRadius: '6px', 
+            backgroundColor: '#f0f7ff', 
+            color: '#007bff', 
+            fontSize: '12px' 
+        },
+        btnRefresh: {
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: '1px solid #ddd',
+            backgroundColor: '#fff',
+            cursor: 'pointer',
+            marginRight: '10px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontWeight: '500'
+        },
+        btnDelete: {
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            backgroundColor: '#1a1a1a', // Đổi sang màu tối sang trọng
+            color: '#c5a059', // Màu vàng Lumina
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontWeight: 'bold'
+        }
+    };
 
-            <div className="card mb-4 shadow-sm">
-                <div className="card-header d-flex justify-content-between align-items-center bg-light">
-                    <div>
-                        <i className="fas fa-history me-1"></i>
-                        <b>Danh sách hoạt động</b>
-                    </div>
-                    <div>
-                        <button 
-                            onClick={fetchLogs} 
-                            className="btn btn-sm btn-outline-primary me-2"
-                            disabled={loading}
-                        >
-                            <i className="fas fa-sync-alt"></i> {loading ? 'Đang tải...' : 'Làm mới'}
-                        </button>
-                        <button 
-                            onClick={handleCleanup} 
-                            className="btn btn-sm btn-danger"
-                            title="Xóa vĩnh viễn tất cả nhật ký"
-                        >
-                            <i className="fas fa-trash-alt"></i> Xóa sạch tất cả
-                        </button>
-                    </div>
+    return (
+        <div style={styles.container}>
+            {/* Header Mới - Đã fix lỗi đè button */}
+            <div style={styles.headerSection}>
+                <div>
+                    <h1 style={styles.title}>Quản lý Nhật ký hệ thống</h1>
+                    <p style={styles.subtitle}>Lịch sử hoạt động chi tiết của thành viên</p>
                 </div>
-                <div className="card-body">
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button style={styles.btnRefresh} onClick={fetchLogs} disabled={loading}>
+                        <FiRefreshCw spin={loading} /> Làm mới
+                    </button>
+                    <button style={styles.btnDelete} onClick={handleCleanup}>
+                        <FiTrash2 /> Xóa sạch tất cả
+                    </button>
+                </div>
+            </div>
+
+            {/* Danh sách log */}
+            <div style={styles.card}>
+                <div style={{ overflowX: 'auto' }}>
                     {loading ? (
-                        <div className="text-center py-5">
-                            <div className="spinner-border text-primary" role="status"></div>
-                            <p className="mt-2 text-muted">Đang tải dữ liệu...</p>
+                        <div style={{ textAlign: 'center', padding: '50px' }}>
+                            <div className="spinner-border text-dark" role="status"></div>
+                            <p style={{ marginTop: '10px' }}>Đang đồng bộ dữ liệu...</p>
                         </div>
                     ) : (
-                        <div className="table-responsive">
-                            <table className="table table-hover table-bordered align-middle">
-                                <thead className="table-dark">
-                                    <tr>
-                                        <th style={{ width: '15%' }}>Thời gian</th>
-                                        <th style={{ width: '15%' }}>Người dùng</th>
-                                        <th style={{ width: '25%' }}>Hành động</th>
-                                        <th style={{ width: '25%' }}>Email tài khoản</th>
-                                        <th style={{ width: '20%' }}>Địa chỉ IP</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {logs.length > 0 ? (
-                                        logs.map((log) => (
-                                            <tr key={log.id}>
-                                                <td>
-                                                    <small className="fw-bold text-secondary">
-                                                        {new Date(log.created_at).toLocaleString('vi-VN')}
-                                                    </small>
-                                                </td>
-                                                <td>
-                                                    <span className={`badge ${log.user_name === 'admin' ? 'bg-danger' : 'bg-primary'}`}>
-                                                        {log.user_name}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span className="text-dark">
-                                                        {log.action.includes('Đặt hàng') ? '📦 ' : '🔍 '}
-                                                        {log.action}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span className="text-primary fw-bold">
-                                                        {/* Hiển thị Email từ cột target_name theo Middleware mới */}
-                                                        {log.target_name || "N/A"}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <code className="small text-muted">{log.ip_address}</code>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan="5" className="text-center py-5 text-muted">
-                                                Không có dữ liệu nhật ký nào được tìm thấy.
+                        <table style={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th style={styles.th}><FiClock /> Thời gian</th>
+                                    <th style={styles.th}><FiUser /> Người dùng</th>
+                                    <th style={styles.th}><FiActivity /> Hành động</th>
+                                    <th style={styles.th}><FiMail /> Email</th>
+                                    <th style={styles.th}><FiGlobe /> Địa chỉ IP</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {logs.length > 0 ? (
+                                    logs.map((log) => (
+                                        <tr key={log.id}>
+                                            <td style={styles.td}>
+                                                <span style={{ fontWeight: '500' }}>
+                                                    {new Date(log.created_at).toLocaleString('vi-VN')}
+                                                </span>
+                                            </td>
+                                            <td style={styles.td}>
+                                                {log.user_name === 'admin' ? (
+                                                    <span style={styles.badgeAdmin}>ADMIN</span>
+                                                ) : (
+                                                    <span style={styles.badgeUser}>{log.user_name}</span>
+                                                )}
+                                            </td>
+                                            <td style={styles.td}>
+                                                <span style={{ color: log.action.includes('Xóa') ? '#d32f2f' : '#333' }}>
+                                                    {log.action}
+                                                </span>
+                                            </td>
+                                            <td style={styles.td}>
+                                                <span style={{ color: '#007bff' }}>{log.target_name || "N/A"}</span>
+                                            </td>
+                                            <td style={styles.td}>
+                                                <code style={{ background: '#f8f9fa', padding: '2px 5px' }}>{log.ip_address}</code>
                                             </td>
                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
+                                            Không tìm thấy lịch sử hoạt động nào.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     )}
                 </div>
             </div>

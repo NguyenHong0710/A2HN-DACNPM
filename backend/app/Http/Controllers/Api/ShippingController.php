@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Shipping;
-use App\Models\Hoadon; // Đảm bảo import đầy đủ các Model
+use App\Models\Hoadon; 
+use App\Models\User; // Thêm Model User để cập nhật hạng
 use Illuminate\Http\Request;
 use Exception;
 use Illuminate\Support\Facades\DB; 
@@ -61,17 +62,21 @@ class ShippingController extends Controller
                 $shipping->save();
 
                 // 3. ĐỒNG BỘ: Cập nhật bảng Hoadon qua quan hệ
-                // Sử dụng orderId (giả định cột khóa ngoại của bạn là orderId)
                 $hoadon = Hoadon::find($shipping->orderId); 
                 if ($hoadon) {
                     $hoadon->update([
                         'deliveryStatus' => $request->status
                     ]);
+
+                    // --- LOGIC THĂNG HẠNG: Chạy khi trạng thái là "Đã giao" ---
+                    if ($request->status === 'Đã giao') {
+                        $this->updateCustomerTier($hoadon->user_id);
+                    }
                 }
 
                 return response()->json([
                     'status' => 'success', 
-                    'message' => 'Đã cập nhật trạng thái vận chuyển và hóa đơn thành công'
+                    'message' => 'Đã cập nhật trạng thái vận chuyển, hóa đơn và hạng thành viên thành công'
                 ]);
             });
 
@@ -80,6 +85,30 @@ class ShippingController extends Controller
                 'status' => 'error', 
                 'message' => 'Lỗi Server: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Logic tính toán lại tổng chi tiêu và thăng hạng
+     */
+    private function updateCustomerTier($userId) 
+    {
+        // Tính tổng tiền từ các hóa đơn 'Đã giao' (dùng LIKE để tránh lỗi font)
+        $totalSpent = Hoadon::where('user_id', $userId)
+                             ->where('deliveryStatus', 'LIKE', 'Đã giao')
+                             ->sum('amount');
+        
+        // Cập nhật giá trị vào User để kiểm tra trong database
+        User::where('id', $userId)->update(['total_spent' => $totalSpent]);
+
+        // Tìm hạng thành viên phù hợp
+        $tier = DB::table('membership_tiers')
+                  ->where('min_spend', '<=', $totalSpent)
+                  ->orderBy('min_spend', 'desc')
+                  ->first();
+
+        if ($tier) {
+            User::where('id', $userId)->update(['membership_tier_id' => $tier->id]);
         }
     }
 }

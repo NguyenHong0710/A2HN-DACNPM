@@ -88,14 +88,14 @@ const Checkout = () => {
     if (token) loadProfile();
   }, [navigate, safeCart.length]);
 
-  // ================= CẬP NHẬT HÀM ÁP DỤNG VOUCHER (GỬI CHI TIẾT ITEMS) =================
   const handleApplyVoucher = async () => {
     if (!voucherCode.trim()) { setVoucherError('Vui lòng nhập mã'); return; }
 
     try {
       const token = getAuthToken();
-      
-      // Gửi danh sách sản phẩm chi tiết để Backend đối chiếu id và tính toán trên item đó
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const userId = storedUser.id || null;
+
       const itemsForValidate = safeCart.map(item => ({
         product_id: item.id || item.product_id,
         price: item.price,
@@ -104,20 +104,25 @@ const Checkout = () => {
 
       const res = await fetch('http://127.0.0.1:8000/api/vouchers/validate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 
+            'Content-Type': 'application/json', 
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json' 
+        },
         body: JSON.stringify({ 
           code: voucherCode.trim().toUpperCase(), 
-          items: itemsForValidate 
+          items: itemsForValidate,
+          user_id: userId
         })
       });
       
       const result = await res.json();
       if (res.ok) {
-        setAppliedVoucher(result); // result nên chứa discount_amount và product_id được áp dụng
+        setAppliedVoucher(result); 
         setVoucherMessage(`Thành công: -${Number(result.discount_amount).toLocaleString()}đ`);
         setVoucherError('');
       } else {
-        setVoucherError(result.message);
+        setVoucherError(result.message || 'Mã không hợp lệ');
         setAppliedVoucher(null);
         setVoucherMessage('');
       }
@@ -132,15 +137,16 @@ const Checkout = () => {
     if (!token) { alert("Vui lòng đăng nhập"); return; }
     
     setIsSubmitting(true);
-    
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+
     const orderPayload = {
       fullName: formData.fullName,
       phone: formData.phone,
       address: formData.address,
-      amount: finalPrice,
+      amount: finalPrice, // Số tiền sau khi giảm giá
       payment_method: paymentMethod === 'COD' ? 'Tiền mặt khi nhận' : 'PayPal QR',
-      voucher_code: appliedVoucher ? appliedVoucher.code : null,
-      discount_amount: discountAmount,
+      voucherCode: appliedVoucher ? appliedVoucher.code : null, // Đồng bộ với Controller
+      user_id: storedUser.id,
       items: safeCart.map(item => ({
         name: item.name,
         qty: item.amount || item.quantity || 1,
@@ -161,14 +167,15 @@ const Checkout = () => {
         body: JSON.stringify(orderPayload)
       });
       
+      const result = await response.json();
+
       if (response.ok) {
         alert("✨ Tuyệt tác đã được xác nhận!");
         localStorage.removeItem('checkoutItems');
         clearCart();
         navigate('/orders');
       } else {
-        const errorData = await response.json();
-        alert("Lỗi khi tạo đơn hàng: " + (errorData.message || "Vui lòng thử lại"));
+        alert("Lỗi: " + (result.message || "Vui lòng thử lại"));
       }
     } catch (err) {
       alert("Lỗi kết nối: " + err.message);
@@ -206,9 +213,8 @@ const Checkout = () => {
             
             <div className="checkout-items-scroll" style={{ maxHeight: '400px', overflowY: 'auto', marginBottom: '20px' }}>
               {safeCart.map((item, index) => {
-                // Kiểm tra xem item này có phải item được áp mã giảm giá không
                 const isDiscountedItem = appliedVoucher && 
-                  (item.id === appliedVoucher.product_id || item.product_id === appliedVoucher.product_id);
+                  (!appliedVoucher.product_id || item.id === appliedVoucher.product_id || item.product_id === appliedVoucher.product_id);
                 
                 return (
                   <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px', paddingBottom: '10px', borderBottom: '1px solid #f5f5f5' }}>
@@ -219,13 +225,13 @@ const Checkout = () => {
                         <div style={{ textAlign: 'right' }}>
                           <span style={{ 
                             display: 'block', 
-                            textDecoration: isDiscountedItem ? 'line-through' : 'none',
-                            color: isDiscountedItem ? '#999' : '#111',
-                            fontSize: isDiscountedItem ? '12px' : '14px'
+                            textDecoration: isDiscountedItem && appliedVoucher.product_id ? 'line-through' : 'none',
+                            color: isDiscountedItem && appliedVoucher.product_id ? '#999' : '#111',
+                            fontSize: isDiscountedItem && appliedVoucher.product_id ? '12px' : '14px'
                           }}>
                             {(item.price * (item.amount || item.quantity || 1)).toLocaleString()}đ
                           </span>
-                          {isDiscountedItem && (
+                          {isDiscountedItem && appliedVoucher.product_id && (
                             <span style={{ color: '#dc3545', fontWeight: 'bold', fontSize: '14px' }}>
                               {((item.price * (item.amount || item.quantity || 1)) - discountAmount).toLocaleString()}đ
                             </span>
@@ -245,24 +251,24 @@ const Checkout = () => {
             <div style={{ borderTop: '1px dashed #ddd', borderBottom: '1px dashed #ddd', padding: '20px 0', marginBottom: '20px' }}>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <input type="text" placeholder="Mã ưu đãi..." value={voucherCode} onChange={(e) => setVoucherCode(e.target.value.toUpperCase())} style={{ flex: 1, padding: '10px', border: '1px solid #ddd' }} />
-                <button type="button" onClick={handleApplyVoucher} style={{ padding: '0 15px', background: '#111', color: '#c5a059', fontWeight: 'bold' }}>ÁP DỤNG</button>
+                <button type="button" onClick={handleApplyVoucher} style={{ padding: '0 15px', background: '#111', color: '#c5a059', fontWeight: 'bold', cursor: 'pointer' }}>ÁP DỤNG</button>
               </div>
               {voucherMessage && <p style={{ color: '#28a745', fontSize: '12px', marginTop: '5px' }}>{voucherMessage}</p>}
               {voucherError && <p style={{ color: '#dc3545', fontSize: '12px', marginTop: '5px' }}>{voucherError}</p>}
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#666' }}><span>Tạm tính</span><span>{totalPrice.toLocaleString()}đ</span></div>
-               {discountAmount > 0 && (
-                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc3545', marginTop: '5px' }}>
-                   <span>Giảm giá {appliedVoucher?.code && `(${appliedVoucher.code})`}</span>
-                   <span>-{discountAmount.toLocaleString()}đ</span>
-                 </div>
-               )}
-               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '20px', fontWeight: 'bold', marginTop: '15px', color: '#111' }}>
-                 <span>TỔNG CỘNG</span>
-                 <span>{finalPrice.toLocaleString()}đ</span>
-               </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#666' }}><span>Tạm tính</span><span>{totalPrice.toLocaleString()}đ</span></div>
+                {discountAmount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc3545', marginTop: '5px' }}>
+                    <span>Giảm giá {appliedVoucher?.code && `(${appliedVoucher.code})`}</span>
+                    <span>-{discountAmount.toLocaleString()}đ</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '20px', fontWeight: 'bold', marginTop: '15px', color: '#111' }}>
+                  <span>TỔNG CỘNG</span>
+                  <span>{finalPrice.toLocaleString()}đ</span>
+                </div>
             </div>
 
             <div style={{ marginTop: '30px' }}>
