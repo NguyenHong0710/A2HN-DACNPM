@@ -7,7 +7,7 @@ import './Cart.css';
 const Cart = () => {
   const { cartItems, removeFromCart, updateQuantity } = useCart();
   const navigate = useNavigate();
-
+//ghichu
   // --- State quản lý các sản phẩm được chọn (Mặc định là mảng rỗng []) ---
   const [selectedItemIds, setSelectedItemIds] = useState([]);
 
@@ -102,7 +102,7 @@ const Cart = () => {
       </div>
     );
   }
-
+  //code
   return (
     <div className="cart-page" style={{ maxWidth: '1200px', margin: '0 auto', padding: '60px 20px' }}>
       <div className="cart-header-title" style={{ borderBottom: '1px solid #eee', paddingBottom: '20px', marginBottom: '40px' }}>

@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react'
 import {
-  CCard, CCardBody, CCardHeader, CCol, CRow, CTable, CTableBody, CTableHead, 
-  CTableHeaderCell, CTableRow, CTableDataCell, CButton, CFormTextarea, CModal, 
-  CModalHeader, CModalTitle, CModalBody, CModalFooter, CBadge, CFormSelect, 
+  CCard, CCardBody, CCardHeader, CCol, CRow, CTable, CTableBody, CTableHead,
+  CTableHeaderCell, CTableRow, CTableDataCell, CButton, CFormTextarea, CModal,
+  CModalHeader, CModalTitle, CModalBody, CModalFooter, CBadge, CFormSelect,
   CFormLabel, CNav, CNavItem, CNavLink, CSpinner
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { 
-  cilStar, cilCommentSquare, cilWarning, cilCheckCircle, cilTrash
+  cilStar, cilCommentSquare, cilWarning, cilCheckCircle, cilTrash 
 } from '@coreui/icons'
 import { API_BASE as API_BASE_URL } from 'src/config';
 
 const Reviews = () => {
-  const [reviews, setReviews] = useState([]) 
+  const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filterType, setFilterType] = useState('All') 
-  
+  const [filterType, setFilterType] = useState('All')
+
   const [replyModal, setReplyModal] = useState(false)
   const [currentReview, setCurrentReview] = useState(null)
   const [replyText, setReplyText] = useState('')
@@ -26,12 +26,9 @@ const Reviews = () => {
   const token = localStorage.getItem('token');
 
   // --- 1. LẤY DỮ LIỆU TỪ LARAVEL ---
-  // Lưu ý: Vì trang Admin cần xem TẤT CẢ đánh giá, bạn nên tạo thêm 1 route GET /admin/reviews ở Laravel
-  // Ở đây tôi giả định bạn dùng API lấy danh sách tổng quát
   const fetchReviews = async () => {
     setLoading(true);
     try {
-      // Gọi đến API Laravel (Sửa lại endpoint tùy theo route admin của bạn)
       const res = await fetch(`${API_BASE_URL}/all-reviews-admin`, { 
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -40,7 +37,7 @@ const Reviews = () => {
       });
       const result = await res.json();
       if (res.ok) {
-        setReviews(result.data || result); 
+        setReviews(result.data || []); 
       }
     } catch (err) {
       console.error("Lỗi tải đánh giá:", err);
@@ -72,16 +69,20 @@ const Reviews = () => {
     try {
       const res = await fetch(`${API_BASE_URL}/reviews/${currentReview.id}/reply`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
         },
         body: JSON.stringify({ reply: replyText })
       });
       if (res.ok) {
         alert("Đã gửi phản hồi thành công!");
         setReplyModal(false);
-        fetchReviews(); 
+        fetchReviews();
+      } else {
+        const errorData = await res.json();
+        alert(errorData.message || "Lỗi khi gửi phản hồi");
       }
     } catch (err) {
       alert("Lỗi kết nối server.");
@@ -104,25 +105,24 @@ const Reviews = () => {
 
   const handleConfirmReport = async () => {
     if (!reportReason) return alert("Vui lòng chọn lý do báo cáo!");
-    // Logic báo cáo thường sẽ update status đánh giá thành 'reported'
+    // Tính năng báo cáo này có thể mở rộng sau trong Laravel
     alert("Tính năng báo cáo đã được ghi nhận hệ thống.");
     setReportModal(false);
   };
 
   const filteredReviews = reviews.filter(item => {
     if (filterType === 'All') return true;
-    // Kiểm tra theo loại đối tượng
     if (filterType === 'Product') return item.product_id !== null;
     return true;
   });
 
   const renderStars = (rating) => {
     return [...Array(5)].map((_, i) => (
-      <CIcon 
-        key={i} 
-        icon={cilStar} 
-        size="sm" 
-        className={i < parseInt(rating) ? "text-warning" : "text-secondary opacity-25"} 
+      <CIcon
+        key={i}
+        icon={cilStar}
+        size="sm"
+        className={i < parseInt(rating) ? "text-warning" : "text-secondary opacity-25"}
       />
     ));
   }
@@ -160,7 +160,7 @@ const Reviews = () => {
             </CCol>
           </CRow>
         </CCardHeader>
-        
+
         <CCardBody>
           <div className="d-none d-md-block">
             <CTable hover responsive className="table-green-custom mb-0">
@@ -203,7 +203,6 @@ const Reviews = () => {
             </CTable>
           </div>
 
-          {/* Giao diện Mobile */}
           <div className="d-block d-md-none">
             {filteredReviews.map(item => (
                 <div key={item.id} className="mobile-card">
@@ -245,26 +244,6 @@ const Reviews = () => {
             <CModalFooter>
                 <CButton color="secondary" onClick={() => setReplyModal(false)}>Hủy</CButton>
                 <CButton style={{backgroundColor: '#52b788', border: 'none', color: 'white'}} onClick={handleSaveReply}>Lưu Phản Hồi</CButton>
-            </CModalFooter>
-        </div>
-      </CModal>
-
-      {/* MODAL BÁO CÁO */}
-      <CModal visible={reportModal} onClose={() => setReportModal(false)} alignment="center">
-        <div className="modal-green-content rounded">
-            <CModalHeader><CModalTitle className="text-danger"><CIcon icon={cilWarning} className="me-2"/>Báo Cáo Vi Phạm</CModalTitle></CModalHeader>
-            <CModalBody>
-                <p>Bạn muốn báo cáo đánh giá này không phù hợp?</p>
-                <CFormSelect className="form-select-green" value={reportReason} onChange={(e) => setReportReason(e.target.value)}>
-                    <option value="">-- Chọn lý do --</option>
-                    <option value="spam">Spam / Quảng cáo</option>
-                    <option value="rude">Ngôn từ thô tục</option>
-                    <option value="fake">Đánh giá sai sự thật</option>
-                </CFormSelect>
-            </CModalBody>
-            <CModalFooter>
-                <CButton color="secondary" onClick={() => setReportModal(false)}>Hủy</CButton>
-                <CButton color="danger" onClick={handleConfirmReport}>Gửi Báo Cáo</CButton>
             </CModalFooter>
         </div>
       </CModal>

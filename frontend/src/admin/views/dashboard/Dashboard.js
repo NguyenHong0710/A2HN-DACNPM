@@ -1,11 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
+<<<<<<< HEAD
+  CCard, CCardBody, CCol, CRow, CSpinner, 
+  CTable, CTableHead, CTableRow, CTableHeaderCell, CTableBody, CTableDataCell,
+  CFormSelect
+=======
   CCard, CCardBody, CCol, CRow, CSpinner,
   CTable, CTableHead, CTableRow, CTableHeaderCell, CTableBody, CTableDataCell,
   CFormSelect
   CCard, CCardBody, CCol, CRow, CSpinner,
   CTable, CTableHead, CTableRow, CTableHeaderCell, CTableBody, CTableDataCell, CAvatar
+>>>>>>> 8d24264a8b9a3d8a55c342ff17d2a3d9e02f60af
 } from '@coreui/react'
 import { CChartLine } from '@coreui/react-chartjs'
 import CIcon from '@coreui/icons-react'
@@ -17,6 +23,11 @@ const Dashboard = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+<<<<<<< HEAD
+  
+  const [dataStats, setDataStats] = useState({ total_gross: 0, pending_count: 0, net_revenue: 0 })
+  const [chartData, setChartData] = useState([])
+=======
 
   const [dataStats, setDataStats] = useState({ total_gross: 0, pending_count: 0, net_revenue: 0 })
   const [chartData, setChartData] = useState([])
@@ -28,6 +39,7 @@ const Dashboard = () => {
     net_revenue: 0
   })
   const [chartData, setChartData] = useState(Array(12).fill(0))
+>>>>>>> 8d24264a8b9a3d8a55c342ff17d2a3d9e02f60af
   const [chartLabels, setChartLabels] = useState([])
   const [recentOrders, setRecentOrders] = useState([])
 
@@ -51,8 +63,11 @@ const Dashboard = () => {
     setLoading(true)
     try {
       const res = await fetch(`${API_BASE_URL}/admin/revenue?filter=${filterType}`, {
+<<<<<<< HEAD
+=======
       // GỌI ĐÚNG ROUTELARAVEL ĐÃ KHAI BÁO TRONG api.php
       const res = await fetch(`${API_BASE_URL}/admin/revenue?filter=Tháng`, {
+>>>>>>> 8d24264a8b9a3d8a55c342ff17d2a3d9e02f60af
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -61,9 +76,12 @@ const Dashboard = () => {
         }
       })
       const result = await res.json()
+<<<<<<< HEAD
+=======
 
       const result = await res.json()
 
+>>>>>>> 8d24264a8b9a3d8a55c342ff17d2a3d9e02f60af
       if (result.status === 'success') {
         setDataStats(result.stats)
         setChartLabels(Array.isArray(result.labels) ? result.labels : Object.values(result.labels || {}));
@@ -89,8 +107,13 @@ const Dashboard = () => {
 
     if (filterType === 'Tuần') {
       const now = new Date();
+<<<<<<< HEAD
+      const dayOfWeek = now.getDay(); 
+      const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; 
+=======
       const dayOfWeek = now.getDay();
       const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+>>>>>>> 8d24264a8b9a3d8a55c342ff17d2a3d9e02f60af
       const monday = new Date(now);
       monday.setDate(now.getDate() - diffToMonday);
       monday.setHours(0, 0, 0, 0);
@@ -111,8 +134,12 @@ const Dashboard = () => {
     return { labels: chartLabels, values: chartData };
   }, [chartLabels, chartData, filterType]);
 
+<<<<<<< HEAD
+  const formatCurrency = (amount) => 
+=======
   const formatCurrency = (amount) =>
   const formatCurrency = (amount) =>
+>>>>>>> 8d24264a8b9a3d8a55c342ff17d2a3d9e02f60af
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0)
 
   if (!isAuthenticated || loading) return (
@@ -144,7 +171,10 @@ const Dashboard = () => {
             </div>
           </CCard>
         </CCol>
+<<<<<<< HEAD
+=======
 
+>>>>>>> 8d24264a8b9a3d8a55c342ff17d2a3d9e02f60af
         <CCol sm={6} lg={4}>
           <CCard className="stat-card card-o mb-4 shadow-sm">
             <div className="d-flex justify-content-between align-items-center">
@@ -174,10 +204,17 @@ const Dashboard = () => {
         <div className="p-4 d-flex justify-content-between align-items-center">
           <h5 className="fw-bold m-0"><CIcon icon={cilGraph} className="me-2 text-primary"/>Xu Hướng Doanh Thu</h5>
           <div style={{width: '180px'}}>
+<<<<<<< HEAD
+            <CFormSelect 
+              size="sm" 
+              className="border-0 bg-light fw-bold" 
+              value={filterType} 
+=======
             <CFormSelect
               size="sm"
               className="border-0 bg-light fw-bold"
               value={filterType}
+>>>>>>> 8d24264a8b9a3d8a55c342ff17d2a3d9e02f60af
               onChange={(e) => setFilterType(e.target.value)}
             >
               <option value="Ngày">Hôm nay</option>
@@ -205,16 +242,28 @@ const Dashboard = () => {
                 pointRadius: 4,
               }]
             }}
+<<<<<<< HEAD
+            options={{ 
+              maintainAspectRatio: false, 
+=======
             options={{
               maintainAspectRatio: false,
+>>>>>>> 8d24264a8b9a3d8a55c342ff17d2a3d9e02f60af
               plugins: { legend: { display: false } },
               layout: { padding: { right: 40 } },
               scales: {
                 x: { grid: { display: false } },
+<<<<<<< HEAD
+                y: { 
+                    beginAtZero: true,
+                    grid: { color: '#f1f1f1' },
+                    ticks: { callback: (v) => v.toLocaleString() } 
+=======
                 y: {
                     beginAtZero: true,
                     grid: { color: '#f1f1f1' },
                     ticks: { callback: (v) => v.toLocaleString() }
+>>>>>>> 8d24264a8b9a3d8a55c342ff17d2a3d9e02f60af
                 }
               }
             }}

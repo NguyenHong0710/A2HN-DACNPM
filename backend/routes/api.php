@@ -12,7 +12,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DoanhthuController;
 use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\NewsController;
-use App\Http\Controllers\Api\ReviewController; // --- THÊM DÒNG NÀY ---
+use App\Http\Controllers\Api\ReviewController;
 
 /*
 |--------------------------------------------------------------------------
@@ -50,14 +50,34 @@ Route::post('/register/verify', [AuthController::class, 'registerVerify']);
 Route::post('/vouchers/validate', [PromotionController::class, 'validateVoucher']);
 // --- 2. PUBLIC ROUTES (XEM SẢN PHẨM/DANH MỤC KHÔNG CẦN LOGIN) ---
 Route::get('/categories', [CategoryController::class, 'index']);
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register/init', [AuthController::class, 'registerInit']);
+Route::post('/register/verify', [AuthController::class, 'registerVerify']);
+
+// Tin tức
+Route::get('/news', [NewsController::class, 'index']);
+Route::get('/news/{id}', [NewsController::class, 'show']);
+
+// Nhóm Public Promotions & Vouchers
+Route::get('/vouchers/validate', [PromotionController::class, 'validateVoucher']);
+Route::prefix('promotions')->group(function () {
+    Route::get('/', [PromotionController::class, 'index']);
+    Route::get('/products', [PromotionController::class, 'getProducts']);
+    Route::get('/membership-tiers', [PromotionController::class, 'getMembershipTiers']);
+});
+
+// Sản phẩm & Danh mục
+Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{id}', [CategoryController::class, 'show']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/search', [ProductController::class, 'search']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 
-// --- ROUTE ĐÁNH GIÁ PUBLIC (XEM ĐÁNH GIÁ) ---
-// Sửa getByProduct thành index cho khớp với Controller
-Route::get('/products/{id}/reviews', [App\Http\Controllers\Api\ReviewController::class, 'index']); // <-- THÊM DÒNG NÀY
+// Xem đánh giá sản phẩm (Công khai)
+Route::get('/products/{id}/reviews', [ReviewController::class, 'index']);
+
+// Tặng voucher (Để ngoài auth cho React gọi danh sách khách hàng nếu cần)
+Route::get('/admin/users-for-assignment', [PromotionController::class, 'getUsersForAssignment']);
 
 
 // --- 2. PROTECTED ROUTES (YÊU CẦU ĐĂNG NHẬP) ---
@@ -68,30 +88,39 @@ Route::middleware(['auth:sanctum'])->group(function () {
         return response()->json($request->user());
     });
 
-    // --- QUẢN LÝ PROMOTIONS (CẦN AUTH) ---
-    Route::prefix('promotions')->group(function () {
-        Route::post('/create', [PromotionController::class, 'store']);
-        Route::post('/update', [PromotionController::class, 'update']);
-        Route::delete('/delete', [PromotionController::class, 'destroy']);
-        Route::post('/toggle-status', [PromotionController::class, 'toggleStatus']);
-    });
-
-    // --- HỒ SƠ CÁ NHÂN ---
+    // Hồ sơ cá nhân
     Route::get('/profile', [ProfileController::class, 'index']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar']);
 
-    // --- QUẢN LÝ DANH MỤC (ADMIN) ---
-    Route::post('/categories', [CategoryController::class, 'store']);
-    Route::put('/categories/{id}', [CategoryController::class, 'update']);
-    Route::patch('/categories/{id}/status', [CategoryController::class, 'updateStatus']);
-    Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
+    // --- QUẢN LÝ HÓA ĐƠN (INVOICES) ---
+    Route::get('/all-invoices', [HoadonController::class, 'index']); // Cho Admin
+    Route::get('/get_invoices', [HoadonController::class, 'index']);
+    Route::post('/create_invoice', [HoadonController::class, 'store']); // Cho User đặt hàng
+    Route::get('/my-invoices', [HoadonController::class, 'getMyInvoices']); // Lịch sử mua hàng
+    Route::post('/update_order_status', [HoadonController::class, 'updateStatus']);
+    Route::post('/cancel_order', [HoadonController::class, 'cancelOrder']);
 
-    // --- QUẢN LÝ SẢN PHẨM (ADMIN) ---
+    // --- QUẢN LÝ VẬN CHUYỂN ---
+    Route::get('/get_shipping', [ShippingController::class, 'index']);
+    Route::post('/update_shipping', [ShippingController::class, 'update']);
+
+    // --- HỆ THỐNG ĐÁNH GIÁ (CẦN AUTH) ---
+    Route::post('/reviews', [ReviewController::class, 'store']);
+    Route::delete('/reviews/{id}', [ReviewController::class, 'destroy']);
+    Route::get('/all-reviews-admin', [ReviewController::class, 'getAllReviewsForAdmin']);
+    Route::post('/reviews/{id}/reply', [ReviewController::class, 'reply']);
+
+    // --- QUẢN LÝ SẢN PHẨM & DANH MỤC (ADMIN) ---
     Route::post('/products', [ProductController::class, 'store']);
     Route::put('/products/{id}', [ProductController::class, 'update']);
     Route::delete('/products/{id}', [ProductController::class, 'destroy']);
     Route::post('/products/{id}/add-stock', [ProductController::class, 'addStock']);
+
+    Route::post('/categories', [CategoryController::class, 'store']);
+    Route::put('/categories/{id}', [CategoryController::class, 'update']);
+    Route::patch('/categories/{id}/status', [CategoryController::class, 'updateStatus']);
+    Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
 
     // --- QUẢN LÝ NGƯỜI DÙNG (ADMIN) ---
     Route::get('/users', [UserController::class, 'index']);
@@ -134,33 +163,8 @@ Route::post('/reviews/{id}/reply', [ReviewController::class, 'reply']);
         Route::post('/assign-voucher', [PromotionController::class, 'assignVoucher']);
     });
 
-    // --- CÁC ROUTE TIỆN ÍCH KHÁC ---
+    // Thông báo
     Route::get('/notifications', function () {
         return response()->json(['status' => 'success', 'data' => []]);
     });
-
-
-
-    Route::get('/get_conversations', function (Request $request) {
-        return response()->json(['status' => 'success', 'data' => []]);
-    });
-
-
-});
-
-// API cho Khách hàng gửi Đánh giá (Dán vào routes/api.php)
-Route::post('/submit-review', function (\Illuminate\Http\Request $request) {
-    try {
-        \App\Models\Review::create([
-            // THÊM ĐUÔI "?? 1" VÀO DÒNG NÀY:
-            'product_id' => $request->product_id ?? 1,
-            'customer_name' => $request->customer_name ?? 'Khách Hàng',
-            'rating' => $request->rating,
-            'comment' => $request->comment,
-            'status' => 'pending' // Chờ Admin duyệt
-        ]);
-        return response()->json(['status' => 'success', 'message' => 'Đã lưu đánh giá']);
-    } catch (\Exception $e) {
-        return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
-    }
 });

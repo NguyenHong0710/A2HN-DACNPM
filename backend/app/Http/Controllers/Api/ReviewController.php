@@ -12,12 +12,14 @@ use Illuminate\Support\Facades\Validator;
 class ReviewController extends Controller
 {
     /**
-     * Lấy danh sách đánh giá của 1 sản phẩm
+     * 1. Lấy danh sách đánh giá của 1 sản phẩm (Dành cho User/Khách xem)
      */
     public function index($productId)
     {
         $reviews = Review::with('user:id,name')
             ->where('product_id', $productId)
+            // Nếu bạn có dùng trường status, hãy bỏ comment dòng dưới để chỉ hiện các review đã duyệt
+            // ->where('status', 'approved')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -31,7 +33,7 @@ class ReviewController extends Controller
     }
 
     /**
-     * Gửi đánh giá mới
+     * 2. Gửi đánh giá mới (Dành cho User đã mua hàng)
      */
     public function store(Request $request)
     {
@@ -47,35 +49,22 @@ class ReviewController extends Controller
 
         $userId = auth()->id();
         $productId = $request->product_id;
-
-        // Lấy thông tin sản phẩm để lấy cột 'name' so sánh với bảng chi_tiet_hoadons
         $product = Product::find($productId);
-        if (!$product) {
-            return response()->json(['message' => 'Sản phẩm không tồn tại.'], 404);
-        }
 
-        /**
-         * FIX LỖI: Truy vấn dựa trên cột 'name' vì bảng chi_tiet_hoadons không có product_id
-         * Sử dụng LIKE 'Đã giao%' để xử lý dấu cách thừa trong Database của bạn.
-         */
+        // Kiểm tra đã mua hàng và nhận hàng chưa
         $hasPurchased = DB::table('hoadons')
             ->join('chi_tiet_hoadons', 'hoadons.id', '=', 'chi_tiet_hoadons.hoadon_id')
             ->where('hoadons.user_id', $userId)
-            ->where('chi_tiet_hoadons.name', $product->name) // So sánh theo TÊN sản phẩm
+            ->where('chi_tiet_hoadons.name', $product->name)
             ->where('hoadons.deliveryStatus', 'LIKE', 'Đã giao%')
             ->exists();
 
         if (!$hasPurchased) {
-            return response()->json([
-                'message' => 'Bạn cần mua sản phẩm này và nhận hàng thành công mới có thể đánh giá.'
-            ], 403);
+            return response()->json(['message' => 'Bạn cần mua sản phẩm này và nhận hàng thành công mới có thể đánh giá.'], 403);
         }
 
-        $alreadyReviewed = Review::where('user_id', $userId)
-            ->where('product_id', $productId)
-            ->exists();
-
-        if ($alreadyReviewed) {
+        // Kiểm tra xem đã đánh giá chưa để tránh spam
+        if (Review::where('user_id', $userId)->where('product_id', $productId)->exists()) {
             return response()->json(['message' => 'Bạn đã đánh giá sản phẩm này rồi.'], 400);
         }
 
@@ -85,85 +74,23 @@ class ReviewController extends Controller
                 'product_id' => $productId,
                 'rating' => $request->rating,
                 'comment' => $request->comment,
+                'status' => 'pending' // Mặc định chờ duyệt nếu cần
             ]);
-
-            $review->load('user:id,name');
-
-            return response()->json([
-                'message' => 'Cảm ơn bạn đã đánh giá sản phẩm!',
-                'data' => $review
-            ], 201);
-
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Lỗi hệ thống: ' . $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * Lấy toàn bộ đánh giá cho Admin
-     */
-    public function getAllReviewsForAdmin()
-    {
-        if (auth()->user()->role !== 'admin') {
-            return response()->json(['message' => 'Bạn không có quyền này.'], 403);
-        }
-
-        $reviews = Review::with(['user:id,name', 'product:id,name'])
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json(['data' => $reviews]);
-    }
-
-    /**
-     * Admin phản hồi đánh giá
-     */
-    public function reply(Request $request, $id)
-    {
-        $request->validate(['reply' => 'required|string|max:1000']);
-
-        try {
-            $review = Review::findOrFail($id);
-            $review->update(['reply' => $request->reply]);
-
-            return response()->json(['message' => 'Đã gửi phản hồi!', 'data' => $review]);
+            return response()->json(['message' => 'Cảm ơn bạn đã đánh giá!', 'data' => $review->load('user:id,name')], 201);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Lỗi: ' . $e->getMessage()], 500);
         }
     }
 
     /**
-     * Xóa đánh giá
+     * 3. Lấy toàn bộ đánh giá kèm thống kê (Dành cho Admin quản lý)
      */
-    public function destroy($id)
+    public function getAllReviewsForAdmin()
     {
-        $review = Review::findOrFail($id);
-
-        if (auth()->id() !== $review->user_id && auth()->user()->role !== 'admin') {
-            return response()->json(['message' => 'Không có quyền xóa.'], 403);
-        }
-
-        $review->delete();
-        return response()->json(['message' => 'Đã xóa đánh giá.']);
-    }
-}
-
-namespace App\Http\Controllers\Api\Admin;
-namespace App\Http\Controllers\Api;
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\Review;
-
-class ReviewController
-{
-    // 1. Lấy danh sách toàn bộ đánh giá
-    public function index()
-    {
-        $reviews = Review::with('product:id,name') // Lấy kèm tên sản phẩm
+        $reviews = Review::with(['user:id,name', 'product:id,name'])
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Tính toán thống kê nhỏ cho Admin
         $stats = [
             'total' => $reviews->count(),
             'pending' => $reviews->where('status', 'pending')->count(),
@@ -176,32 +103,54 @@ class ReviewController
             'data' => $reviews
         ]);
     }
-    // 4. Xóa vĩnh viễn đánh giá
-    public function destroy($id)
-    {
-        $review = Review::findOrFail($id);
-        $review->delete();
 
-        return response()->json(['status' => 'success', 'message' => 'Đã xóa đánh giá thành công']);
+    /**
+     * 4. Admin phản hồi đánh giá
+     */
+    public function reply(Request $request, $id)
+    {
+        $request->validate(['reply' => 'required|string|max:1000']);
+
+        try {
+            $review = Review::findOrFail($id);
+            $review->update(['reply' => $request->reply]);
+            return response()->json(['status' => 'success', 'message' => 'Đã gửi phản hồi!', 'data' => $review]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Lỗi: ' . $e->getMessage()], 500);
+        }
     }
 
-    // 2. Cập nhật trạng thái (Duyệt / Ẩn)
+    /**
+     * 5. Cập nhật trạng thái (Duyệt / Ẩn bài đánh giá) - Admin
+     */
     public function updateStatus(Request $request, $id)
     {
+        $request->validate(['status' => 'required|in:approved,hidden,pending']);
+
         $review = Review::findOrFail($id);
-        $review->status = $request->status; // 'approved' hoặc 'hidden'
+        $review->status = $request->status;
         $review->save();
 
         return response()->json(['status' => 'success', 'message' => 'Đã cập nhật trạng thái']);
     }
 
-    // 3. Admin trả lời đánh giá
-    public function reply(Request $request, $id)
+    /**
+     * 6. Xóa đánh giá (Admin hoặc Chủ nhân bài viết)
+     */
+    public function destroy($id)
     {
-        $review = Review::findOrFail($id);
-        $review->reply = $request->reply_content;
-        $review->save();
+        try {
+            $review = Review::findOrFail($id);
 
-        return response()->json(['status' => 'success', 'message' => 'Đã gửi phản hồi']);
+            // Kiểm tra quyền: Chỉ Admin hoặc người tạo ra review mới được xóa
+            if (auth()->id() !== $review->user_id && auth()->user()->role !== 'admin') {
+                return response()->json(['message' => 'Không có quyền xóa.'], 403);
+            }
+
+            $review->delete();
+            return response()->json(['status' => 'success', 'message' => 'Đã xóa đánh giá thành công']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Lỗi: ' . $e->getMessage()], 500);
+        }
     }
 }

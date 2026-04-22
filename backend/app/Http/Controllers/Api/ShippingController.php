@@ -12,23 +12,24 @@ use Illuminate\Support\Facades\DB;
 
 class ShippingController extends Controller
 {
-    public function index()
-    {
-        try {
-            // Lấy dữ liệu kèm quan hệ để tránh lỗi "undefined" bên React
-            $shippings = Shipping::with(['hoadon.chiTiet'])->orderBy('created_at', 'desc')->get();
-            
-            return response()->json([
-                'status' => 'success',
-                'data' => $shippings
-            ], 200);
-        } catch (Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Lỗi lấy dữ line: ' . $e->getLine() . ' - ' . $e->getMessage()
-            ], 500);
-        }
+   public function index()
+{
+    try {
+        // Load thêm quan hệ chiTiet để React có dữ liệu sản phẩm hiển thị
+        // THÊM: Điều kiện lọc (whereIn) để chắc chắn chỉ hiển thị các đơn đang hoặc đã giao bên trang Vận chuyển
+        $shippings = Shipping::with(['hoadon.chiTiet'])
+            ->whereIn('status', ['Đang giao', 'Đã giao', 'Giao thành công']) 
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return response()->json([
+            'status' => 'success',
+            'data' => $shippings
+        ], 200);
+    } catch (Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
+}
 
     public function update(Request $request)
     {

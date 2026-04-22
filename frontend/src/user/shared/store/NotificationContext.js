@@ -17,7 +17,7 @@ export const NotificationProvider = ({ children }) => {
   
   const [accountKey, setAccountKey] = useState(() => getCurrentAccountKey());
 
-  // 🛠 TỐI ƯU: Tạm thời tắt gọi API để giải phóng băng thông cho Products
+  // 🛠 TỐI ƯU: Gọi API lấy thông báo từ Backend
   const refreshNotifications = useCallback(async () => {
     const nextAccountKey = getCurrentAccountKey();
     if (nextAccountKey === 'guest') {
@@ -25,36 +25,42 @@ export const NotificationProvider = ({ children }) => {
       return;
     }
 
-    // --- TẠM KHÓA PHẦN NÀY ĐỂ HẾT "ÍU" ---
-    /* try {
+    try {
       const token = getAuthToken();
       const res = await fetch('http://127.0.0.1:8000/api/notifications', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json' 
+        }
       });
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
       const result = await res.json();
-      const finalData = Array.isArray(result) ? result : (Array.isArray(result.data) ? result.data : []);
+      // Kiểm tra cấu trúc dữ liệu trả về từ Laravel
+      const finalData = Array.isArray(result) ? result : (Array.isArray(result?.data) ? result.data : []);
+      
       setNotifications(finalData);
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
-      setNotifications([]);
+      // Giữ lại dữ liệu cũ nếu lỗi để tránh mất giao diện
+      setNotifications(prev => prev.length > 0 ? prev : []);
     }
-    */
-    // Trả về mảng rỗng ngay lập tức để không bị treo 1.4s
-    setNotifications(prev => prev.length > 0 ? prev : []); 
   }, [getCurrentAccountKey]);
 
-  // 🛠 TỐI ƯU: Giảm tần suất gọi hoặc tắt setInterval khi đang phát triển
+  // Tự động làm mới mỗi 60 giây
   useEffect(() => {
     refreshNotifications();
-
-    // Tăng lên 60 giây hoặc tắt hẳn để tránh request chồng chéo
     const timer = setInterval(() => {
-      // refreshNotifications(); 
+      refreshNotifications(); 
     }, 60000);
 
     return () => clearInterval(timer);
   }, [refreshNotifications]);
 
+  // Theo dõi sự thay đổi đăng nhập (Login/Logout/Storage)
   useEffect(() => {
     const handleAuthChanged = () => {
       const nextAccountKey = getCurrentAccountKey();
@@ -75,10 +81,9 @@ export const NotificationProvider = ({ children }) => {
     };
   }, [accountKey, getCurrentAccountKey, refreshNotifications]);
 
-  // Hàm thêm thông báo mới (Local Only)
+  // Hàm thêm thông báo mới (Dùng cho các thông báo tức thời ở Frontend)
   const addNotification = (title, desc) => {
     if (getCurrentAccountKey() === 'guest') return;
-
     const newNotify = {
       id: Date.now(),
       title,
@@ -105,7 +110,14 @@ export const NotificationProvider = ({ children }) => {
   const unreadCount = notifications.filter(n => n.unread).length;
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, unreadCount, markAllAsRead, markAsRead, refreshNotifications }}>
+    <NotificationContext.Provider value={{ 
+      notifications, 
+      addNotification, 
+      unreadCount, 
+      markAllAsRead, 
+      markAsRead, 
+      refreshNotifications 
+    }}>
       {children}
     </NotificationContext.Provider>
   );

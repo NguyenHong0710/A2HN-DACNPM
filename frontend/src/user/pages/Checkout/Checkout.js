@@ -48,6 +48,7 @@ const Checkout = () => {
     return [];
   };
 
+
   const safeCart = getSelectedItems();
   const clearCart = cartData.clearCart || cartData.emptyCart || (() => {});
 

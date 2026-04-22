@@ -3,18 +3,18 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../../store/CartContext';
 import Services from './Services';
 import { FiArrowRight, FiShoppingBag, FiStar } from 'react-icons/fi';
-// Import thêm bộ icon trang sức chuyên dụng
+// Import bộ icon trang sức chuyên dụng
+import { GiDiamondRing, GiNecklace, GiDropEarrings, GiGemChain } from 'react-icons/gi';
 import './Home.css';
 import { API_BASE as API_BASE_URL } from "../../../config";
-import { GiDiamondRing, GiNecklace, GiDropEarrings, GiGemChain } from 'react-icons/gi';
 
 const Home = () => {
   const { addToCart } = useCart();
   const [dbProducts, setDbProducts] = useState([]);
-  const [loading, setLoading] = useState(false); // Mặc định false để không hiện loading ngay lập tức
+  const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
 
-  // 1. KIỂM TRA ĐĂNG NHẬP (Giữ nguyên logic của bạn)
+  // 1. KIỂM TRA ĐĂNG NHẬP
   useEffect(() => {
     const checkAuth = () => {
       const storedUser = localStorage.getItem('user_info');
@@ -36,6 +36,14 @@ const Home = () => {
 
       try {
         const res = await fetch(`${API_BASE_URL}/products`);
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error(`Server trả về lỗi ${res.status}:`, errorText);
+          setDbProducts([]);
+          return;
+        }
+
         const result = await res.json();
         const data = result.data || result;
         if (isMounted) {
@@ -43,6 +51,7 @@ const Home = () => {
         }
       } catch (error) {
         console.error("Lỗi lấy sản phẩm:", error);
+        setDbProducts([]);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -50,12 +59,12 @@ const Home = () => {
 
     fetchProducts();
     return () => { isMounted = false; };
-  }, []); // [] đảm bảo chỉ chạy 1 lần khi mount
+  }, []); // Chạy 1 lần khi mount
 
   // 3. BANNER TRƯỢT (Dùng useMemo để tránh tạo lại mảng khi re-render)
   const bannerImages = useMemo(() => [
     {
-      url: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=1200&q=60", // Giảm chất lượng ảnh xuống 60 để load cực nhanh
+      url: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=1200&q=60",
       title: "Lumina Jewelry - Đẳng Cấp Thượng Lưu",
       subtitle: "Tôn vinh vẻ đẹp quý phái và khí chất riêng biệt của bạn."
     },
@@ -75,6 +84,7 @@ const Home = () => {
     return () => clearInterval(interval);
   }, [bannerImages.length]);
 
+<<<<<<< HEAD
   // 4. LOGIC XỬ LÝ ẢNH (Giữ nguyên nhưng tối ưu hiển thị)
   const getImageUrl = useCallback((images) => {
     if (!images) return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
@@ -103,6 +113,19 @@ const Home = () => {
       return firstImage.startsWith('http')
         ? firstImage
         : `http://127.0.0.1:8000/storage/${firstImage}`;
+  // 4. LOGIC XỬ LÝ ẢNH
+  const getImageUrl = useCallback((images) => {
+    if (!images) return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
+    try {
+      const parsed = typeof images === 'string' ? JSON.parse(images) : images;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const firstImage = parsed[0];
+        return firstImage.startsWith('http') ? firstImage : `http://127.0.0.1:8000/storage/${firstImage}`;
+      }
+    } catch (e) {
+      if (typeof images === 'string' && images.length > 0) {
+          return images.startsWith('http') ? images : `http://127.0.0.1:8000/storage/${images}`;
+      }
     }
     return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
   }, []);
@@ -116,7 +139,6 @@ const Home = () => {
 
   return (
     <div className="home-wrapper">
-      {/* 1. HERO BANNER */}
       <div className="hero-slider">
         {bannerImages.map((banner, index) => (
           <div
@@ -128,7 +150,7 @@ const Home = () => {
             <div className="hero-content">
               <span className="hero-badge">Chính hãng 100%</span>
               <h1 className="hero-title">{banner.title}</h1>
-              <p className="hero-subtitle">{banner.subtitle}</p>
+              <div className="hero-subtitle">{banner.subtitle}</div>
               <Link to="/shop" className="hero-btn">
                 Khám phá ngay <FiArrowRight />
               </Link>
@@ -160,9 +182,9 @@ const Home = () => {
             <p className="section-subtitle">Tuyệt tác trang sức được chế tác thủ công</p>
           </div>
 
+
           {loading && dbProducts.length === 0 ? (
             <div className="loading-skeleton-grid">
-               {/* Thay spinner bằng 8 khung trống để tạo cảm giác trang đã tải xong */}
                {[...Array(8)].map((_, i) => <div key={i} className="skeleton-card"></div>)}
             </div>
 
@@ -188,6 +210,19 @@ const Home = () => {
                           const validImageUrl = getImageUrl(product.images);
                           addToCart({ ...product, images: validImageUrl });
                         }}
+                        <img
+                          src={getImageUrl(product.images)}
+                          alt={product.name}
+                          loading="lazy"
+                        />
+                    </Link>
+                    <div className="product-actions">
+                      <button
+                        onClick={() => {
+                          const validImageUrl = getImageUrl(product.images);
+                          addToCart({ ...product, images: validImageUrl });
+                        }}
+>>>>>>> 005b43f97b079ca173a44e2b67c50349405b16c6
                         className="action-btn"
                       >
                         <FiShoppingBag />
@@ -235,7 +270,7 @@ const Home = () => {
           )}
 
           <div className="view-all-wrapper">
-            <Link to="/shop" className="view-alal-btn">Xem tất cả sản phẩm</Link>
+            <Link to="/shop" className="view-all-btn">Xem tất cả sản phẩm</Link>
           </div>
         </section>
       </div>
