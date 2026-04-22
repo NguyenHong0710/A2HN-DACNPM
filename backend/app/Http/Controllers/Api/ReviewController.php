@@ -16,6 +16,7 @@ class ReviewController extends Controller
      */
     public function index($productId)
     {
+        $reviews = Review::with('product:id,name') // Lấy kèm tên sản phẩm
         $reviews = Review::with('user:id,name')
             ->where('product_id', $productId)
             // Nếu bạn có dùng trường status, hãy bỏ comment dòng dưới để chỉ hiện các review đã duyệt
@@ -34,6 +35,7 @@ class ReviewController extends Controller
 
     /**
      * 2. Gửi đánh giá mới (Dành cho User đã mua hàng)
+     * 2. Gửi đánh giá mới
      */
     public function store(Request $request)
     {
@@ -84,6 +86,7 @@ class ReviewController extends Controller
 
     /**
      * 3. Lấy toàn bộ đánh giá kèm thống kê (Dành cho Admin quản lý)
+     * 3. Lấy toàn bộ đánh giá kèm thống kê
      */
     public function getAllReviewsForAdmin()
     {
@@ -136,6 +139,10 @@ class ReviewController extends Controller
 
     /**
      * 6. Xóa đánh giá (Admin hoặc Chủ nhân bài viết)
+    // 3. Admin trả lời đánh giá
+    public function reply(Request $request, $id)
+    /**
+     * 6. Xóa đánh giá
      */
     public function destroy($id)
     {
