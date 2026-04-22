@@ -40,7 +40,7 @@ const Home = () => {
         if (!res.ok) {
           const errorText = await res.text();
           console.error(`Server trả về lỗi ${res.status}:`, errorText);
-          setDbProducts([]);
+          if (isMounted) setDbProducts([]);
           return;
         }
 
@@ -51,7 +51,7 @@ const Home = () => {
         }
       } catch (error) {
         console.error("Lỗi lấy sản phẩm:", error);
-        setDbProducts([]);
+        if (isMounted) setDbProducts([]);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -59,7 +59,7 @@ const Home = () => {
 
     fetchProducts();
     return () => { isMounted = false; };
-  }, []); // Chạy 1 lần khi mount
+  }, [dbProducts.length]);
 
   // 3. BANNER TRƯỢT (Dùng useMemo để tránh tạo lại mảng khi re-render)
   const bannerImages = useMemo(() => [
@@ -84,8 +84,7 @@ const Home = () => {
     return () => clearInterval(interval);
   }, [bannerImages.length]);
 
-<<<<<<< HEAD
-  // 4. LOGIC XỬ LÝ ẢNH (Giữ nguyên nhưng tối ưu hiển thị)
+  // 4. LOGIC XỬ LÝ ẢNH (Tối ưu với useCallback)
   const getImageUrl = useCallback((images) => {
     if (!images) return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
     try {
@@ -96,40 +95,13 @@ const Home = () => {
       }
     } catch (e) {
       if (typeof images === 'string' && images.length > 0) {
-          return `http://127.0.0.1:8000/storage/${images}`;
-      }
-  // 4. LOGIC XỬ LÝ ẢNH
-  const getImageUrl = (images) => {
-  if (!images) return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
-
-  // 5. DANH MỤC NỔI BẬT (Đã đổi sang Icon và tên chuẩn khớp với filter trang Shop)
-  try {
-    // Nếu images là chuỗi (JSON string), ta mới parse
-    const parsed = typeof images === 'string' ? JSON.parse(images) : images;
-
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      const firstImage = parsed[0];
-      // Kiểm tra nếu là đường dẫn đầy đủ (http) thì dùng luôn, không thì nối storage
-      return firstImage.startsWith('http')
-        ? firstImage
-        : `http://127.0.0.1:8000/storage/${firstImage}`;
-  // 4. LOGIC XỬ LÝ ẢNH
-  const getImageUrl = useCallback((images) => {
-    if (!images) return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
-    try {
-      const parsed = typeof images === 'string' ? JSON.parse(images) : images;
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const firstImage = parsed[0];
-        return firstImage.startsWith('http') ? firstImage : `http://127.0.0.1:8000/storage/${firstImage}`;
-      }
-    } catch (e) {
-      if (typeof images === 'string' && images.length > 0) {
-          return images.startsWith('http') ? images : `http://127.0.0.1:8000/storage/${images}`;
+        return images.startsWith('http') ? images : `http://127.0.0.1:8000/storage/${images}`;
       }
     }
     return 'https://via.placeholder.com/300?text=Lumina+Jewelry';
   }, []);
 
+  // 5. DANH MỤC NỔI BẬT
   const circleCategories = [
     { name: 'Nhẫn Bạc', icon: <GiDiamondRing /> },
     { name: 'Dây Chuyền Bạc', icon: <GiNecklace /> },
@@ -139,6 +111,7 @@ const Home = () => {
 
   return (
     <div className="home-wrapper">
+      {/* KHỐI HERO SLIDER */}
       <div className="hero-slider">
         {bannerImages.map((banner, index) => (
           <div
@@ -162,6 +135,7 @@ const Home = () => {
       <Services />
 
       <div className="home-container">
+        {/* KHỐI DANH MỤC NỔI BẬT */}
         <section className="category-section">
           <div className="section-header">
             <h2 className="section-title">Danh Mục Nổi Bật</h2>
@@ -176,84 +150,55 @@ const Home = () => {
           </div>
         </section>
 
+        {/* KHỐI SẢN PHẨM NỔI BẬT */}
         <section className="featured-section">
           <div className="section-header">
             <h2 className="section-title">Khám phá bộ sưu tập</h2>
             <p className="section-subtitle">Tuyệt tác trang sức được chế tác thủ công</p>
           </div>
 
-
-          {loading && dbProducts.length === 0 ? (
-            <div className="loading-skeleton-grid">
-               {[...Array(8)].map((_, i) => <div key={i} className="skeleton-card"></div>)}
-            </div>
-
           {loading ? (
-            <div className="loading-spinner">Đang tải sản phẩm...</div>
+            // Hiển thị Skeleton Loading khi đang tải dữ liệu
+            <div className="loading-skeleton-grid">
+              {[...Array(8)].map((_, i) => <div key={i} className="skeleton-card"></div>)}
+            </div>
           ) : dbProducts.length === 0 ? (
             <p className="no-data">Sản phẩm đang được cập nhật...</p>
           ) : (
+            // Hiển thị danh sách sản phẩm
             <div className="product-grid">
               {dbProducts.slice(0, 8).map((product) => (
                 <div key={product.id} className="product-card">
                   <div className="product-image-wrapper">
                     <Link to={`/product/${product.id}`}>
-                        <img
-                          src={getImageUrl(product.images)}
-                          alt={product.name}
-                          loading="lazy" // Tối ưu: Chỉ tải ảnh khi cuộn tới
-                        />
+                      <img
+                        src={getImageUrl(product.images)}
+                        alt={product.name}
+                        loading="lazy"
+                      />
                     </Link>
                     <div className="product-actions">
                       <button
                         onClick={() => {
                           const validImageUrl = getImageUrl(product.images);
-                          addToCart({ ...product, images: validImageUrl });
+                          const productToCart = {
+                            ...product,
+                            images: validImageUrl
+                          };
+                          addToCart(productToCart);
+                          console.log("Đã thêm vào giỏ:", productToCart);
                         }}
-                        <img
-                          src={getImageUrl(product.images)}
-                          alt={product.name}
-                          loading="lazy"
-                        />
-                    </Link>
-                    <div className="product-actions">
-                      <button
-                        onClick={() => {
-                          const validImageUrl = getImageUrl(product.images);
-                          addToCart({ ...product, images: validImageUrl });
-                        }}
->>>>>>> 005b43f97b079ca173a44e2b67c50349405b16c6
                         className="action-btn"
+                        title="Thêm vào giỏ hàng"
                       >
                         <FiShoppingBag />
                       </button>
-  <button
-  onClick={() => {
-    // 1. Sử dụng hàm getImageUrl để lấy link ảnh tuyệt đối (đã xử lý JSON/Mảng)
-    const validImageUrl = getImageUrl(product.images);
-
-    // 2. Tạo object mới mang theo trường 'images' (đúng tên bạn muốn)
-    const productToCart = {
-      ...product,
-      images: validImageUrl // Gán URL đã xử lý xong vào đây
-    };
-
-    // 3. Đưa vào giỏ hàng
-    addToCart(productToCart);
-
-    // Log thử để kiểm tra xem có trường 'images' chưa
-    console.log("Đã thêm vào giỏ:", productToCart);
-  }}
-  className="action-btn"
->
-  <FiShoppingBag />
-</button>
                     </div>
                   </div>
                   <div className="product-info">
                     <span className="product-cat">{product.category}</span>
                     <Link to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                        <h3 className="product-name">{product.name}</h3>
+                      <h3 className="product-name">{product.name}</h3>
                     </Link>
                     <div className="product-bottom">
                       <span className="product-price">
