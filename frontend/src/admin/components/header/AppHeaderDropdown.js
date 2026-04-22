@@ -54,7 +54,7 @@ const AppHeaderDropdown = () => {
     if (userId) {
       try {
         // Gọi API cập nhật is_online = 0
-        await fetch(`${API_BASE}/logout.php?id=${userId}`, {
+        await fetch(`${API_BASE}/logout?id=${userId}`, {
           method: 'GET'
         });
       } catch (error) {
