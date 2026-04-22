@@ -86,7 +86,6 @@ class ReviewController extends Controller
 
     /**
      * 3. Lấy toàn bộ đánh giá kèm thống kê (Dành cho Admin quản lý)
-     * 3. Lấy toàn bộ đánh giá kèm thống kê
      */
     public function getAllReviewsForAdmin()
     {
@@ -138,7 +137,7 @@ class ReviewController extends Controller
     }
 
     /**
-     * 6. Xóa đánh giá (Admin hoặc Chủ nhân bài viết)
+     * 6. Xóa đánh giá
     // 3. Admin trả lời đánh giá
     public function reply(Request $request, $id)
     /**
