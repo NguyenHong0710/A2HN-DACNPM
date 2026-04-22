@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Hoadon;
-use App\Models\ChiTietHoadon; 
+use App\Models\ChiTietHoadon;
 use App\Models\Product;
 use App\Models\Shipping;
 use App\Http\Controllers\Api\PromotionController; // Import để gọi logic trừ voucher
@@ -50,14 +50,18 @@ class HoadonController extends Controller
                 'customer'        => $request->fullName,
                 'phone'           => $request->phone,
                 'address'         => $request->address,
-                'amount'          => $finalAmount, 
+                'amount'          => $finalAmount,
                 'payment_method'  => $request->payment_method,
-                'deliveryStatus'  => 'pending', 
+                'deliveryStatus'  => 'pending',
+                'amount'          => $calculatedAmount,
+                'payment_method'  => $request->payment_method,
+
+                'deliveryStatus'  => 'pending',
             ]);
 
             // Cập nhật thông tin nhanh cho User
             $user->update([
-                'name'    => $request->fullName, 
+                'name'    => $request->fullName,
                 'phone'   => $request->phone,
                 'address' => $request->address,
             ]);
@@ -71,7 +75,7 @@ class HoadonController extends Controller
                     'name'   => $item['name'] ?? 'Sản phẩm không tên',
                     'qty'    => $item['qty'] ?? ($item['quantity'] ?? 1),
                     'price'  => $item['price'] ?? 0,
-                    'images' => $imagePath, 
+                    'images' => $imagePath,
                 ]);
             }
 
@@ -123,7 +127,7 @@ class HoadonController extends Controller
             }
 
             $invoices = Hoadon::with('chiTiet')
-                ->where('user_id', $user->id) 
+                ->where('user_id', $user->id)
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -168,19 +172,28 @@ class HoadonController extends Controller
             // 3. Cập nhật vận chuyển
             $shippingStatus = ($newStatus === 'Đã xác nhận') ? 'Chờ lấy hàng' : $newStatus;
             $shipping = Shipping::where('orderId', $hoadon->id)->first();
-            
+
             if ($shipping) {
                 $shipping->update(['status' => $shippingStatus]);
             } else {
                 Shipping::create([
-                    'id'            => 'SHIP-' . $hoadon->id . '-' . time(), 
+                    'id'            => 'SHIP-' . $hoadon->id . '-' . time(),
                     'orderId'       => $hoadon->id,
                     'customer'      => $hoadon->customer,
                     'phone'         => $hoadon->phone,
                     'address'       => $hoadon->address,
                     'status'        => $shippingStatus,
                     'method'        => 'Giao hàng tiêu chuẩn',
-                    'estimatedTime' => now()->addDays(3), 
+                    'estimatedTime' => now()->addDays(3),
+                    'id'           => 'SHIP-' . $hoadon->id . '-' . time(),
+                    'orderId'      => $hoadon->id,
+                    'customer'     => $hoadon->customer,
+                    'phone'        => $hoadon->phone,
+                    'address'      => $hoadon->address,
+                    'status'       => $request->status,
+                    'product_id' => $hoadon->id,
+                    'method'       => 'Giao hàng tiêu chuẩn',
+                    'estimatedTime' => now()->addDays(3),
                 ]);
             }
 
@@ -230,7 +243,7 @@ class HoadonController extends Controller
                         'name'  => $item->name,
                         'qty'   => $item->qty,
                         'price' => (float)$item->price,
-                        'image' => $item->images, 
+                        'image' => $item->images,
                     ];
                 }) : []
             ];

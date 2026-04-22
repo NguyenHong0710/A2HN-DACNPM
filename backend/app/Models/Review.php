@@ -33,6 +33,9 @@ class Review extends Model
     /**
      * Thiết lập quan hệ: Một đánh giá thuộc về một sản phẩm.
      */
+    protected $fillable = ['product_id', 'customer_name', 'rating', 'comment', 'status', 'reply'];
+
+    // Liên kết để lấy tên sản phẩm
     public function product()
     {
         return $this->belongsTo(Product::class);
@@ -45,4 +48,5 @@ class Review extends Model
         'created_at' => 'datetime:H:i d/m/Y',
         'rating' => 'integer',
     ];
+}
 }
